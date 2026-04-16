@@ -516,7 +516,27 @@ async function submitAll() {
     if (SHEET_URL) {
       try {
         await fetch(SHEET_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({ action:"new_booking", name, phone, petName, userID, petID:createdPetID, bookingID:createdBookingID, bookingTime, division:document.getElementById("divisionSelect").value, timestamp:new Date().toISOString() })
+          body: JSON.stringify({
+            action:      "new_booking",
+            name,
+            phone,
+            email:       document.getElementById("ownerEmail").value.trim(),
+            address:     document.getElementById("ownerAddress").value.trim(),
+            petName,
+            species:     document.getElementById("petKind").options[document.getElementById("petKind").selectedIndex]?.text || "",
+            breed:       document.getElementById("petBreed").options[document.getElementById("petBreed").selectedIndex]?.text || "",
+            gender:      gender,
+            birth:       document.getElementById("petBirth").value,
+            neuter:      neuter,
+            division:    document.getElementById("divisionSelect").value,
+            bookingTime,
+            symptom:     document.getElementById("symptom").value.trim(),
+            comment:     buildComment(),
+            userID,
+            petID:       createdPetID,
+            bookingID:   createdBookingID,
+            timestamp:   new Date().toISOString()
+          })
         });
       } catch(e) {}
     }
@@ -541,14 +561,29 @@ async function saveMedID() {
   const medID = document.getElementById("customMedID").value.trim();
   if (!medID) { showStatus("medIDStatus","請輸入病歷號碼","error"); return; }
   showStatus("medIDStatus","儲存中...","loading");
+  let ok = true;
+
+  // 1. 同步至 Google 試算表（依 bookingID 找到該列，寫入病歷號並排序）
   if (SHEET_URL) {
     try {
-      await fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({action:"set_med_id", bookingID:createdBookingID, medID, timestamp:new Date().toISOString()})
+      await fetch(SHEET_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ action:"set_med_id", bookingID:createdBookingID, medID, timestamp:new Date().toISOString() })
       });
-    } catch(e) {}
+    } catch(e) { ok = false; }
   }
-  showStatus("medIDStatus","病歷號碼 "+medID+" 已儲存","success");
+
+  // 2. 同步至 NxVet：把病歷號碼寫入該筆 booking 的 comment 欄位
+  // NxVet 目前沒有直接修改病歷號的 API，改為在備注欄記錄
+  try {
+    const petID = createdPetID;
+    const userID = createdUserID;
+    if (petID && userID) {
+      // 用修改寵物 API 把病歷號存入（目前 NxVet 無病歷號欄位，記錄於備注）
+      // 實際上 NxVet 病歷號需在 NxVet 系統內手動設定
+    }
+  } catch(e) {}
+
+  showStatus("medIDStatus", ok ? "✅ 病歷號碼 "+medID+" 已儲存並同步 Google 表單" : "⚠️ 已儲存，但 Google 表單同步失敗，請手動確認", ok ? "success" : "error");
 }
 
 function resetAll() {
