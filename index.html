@@ -515,7 +515,7 @@ async function submitAll() {
     // 4. Sync Google Sheet
     if (SHEET_URL) {
       try {
-        await fetch(SHEET_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"},
+        await fetch(SHEET_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain"},
           body: JSON.stringify({
             action:      "new_booking",
             name,
@@ -566,7 +566,7 @@ async function saveMedID() {
   // 1. 同步至 Google 試算表（依 bookingID 找到該列，寫入病歷號並排序）
   if (SHEET_URL) {
     try {
-      await fetch(SHEET_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"},
+      await fetch(SHEET_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain"},
         body: JSON.stringify({ action:"set_med_id", bookingID:createdBookingID, medID, timestamp:new Date().toISOString() })
       });
     } catch(e) { ok = false; }
