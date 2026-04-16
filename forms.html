@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>路米動物醫院 — 院內表單系統</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+  :root {
+    --bg: #F7F6F2; --surface: #FFFFFF; --border: #E4E2D8;
+    --text: #1A1916; --text-s: #6B6860; --text-h: #9B9890;
+    --accent: #2D6A4F; --accent-l: #E8F3EE; --accent-m: #52B788;
+    --warn: #B5541C; --warn-l: #FDF0E8;
+    --r: 8px; --rl: 12px; --sans: 'Noto Sans TC', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 16px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-title { padding: 0 16px 12px; font-size: 13px; font-weight: 500; color: var(--text-s); border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+  .nav-item { padding: 9px 16px; font-size: 13px; cursor: pointer; color: var(--text-s); display: flex; align-items: center; gap: 8px; }
+  .nav-item:hover { background: var(--bg); color: var(--text); }
+  .nav-item.active { background: var(--accent-l); color: var(--accent); font-weight: 500; border-right: 2px solid var(--accent); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .main { flex: 1; padding: 24px; max-width: 800px; }
+
+  /* Form cards */
+  .form-page { display: none; }
+  .form-page.active { display: block; }
+  .form-header { margin-bottom: 20px; }
+  .form-title { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .form-sub { font-size: 13px; color: var(--text-s); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rl); padding: 20px; margin-bottom: 14px; }
+  .card-title { font-size: 12px; font-weight: 500; color: var(--text-s); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label { font-size: 12px; color: var(--text-s); display: block; margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); font-family: var(--sans); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-m); }
+  textarea { min-height: 60px; resize: vertical; line-height: 1.6; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* Consent text */
+  .consent-text { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; font-size: 13px; line-height: 2; color: var(--text-s); margin-bottom: 14px; }
+  .fill-blank { display: inline-block; min-width: 80px; border-bottom: 1px solid var(--text); padding: 0 4px; color: var(--text); font-weight: 500; background: transparent; font-size: 13px; font-family: var(--sans); text-align: center; }
+  .fill-blank:focus { outline: none; border-bottom-color: var(--accent); }
+
+  /* Action buttons */
+  .btn-row { display: flex; gap: 10px; }
+  .btn { padding: 10px 20px; border-radius: var(--r); font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--sans); border: none; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #235C3E; }
+  .btn-outline { background: var(--surface); color: var(--text-s); border: 1px solid var(--border) !important; }
+  .btn-outline:hover { background: var(--bg); }
+  .btn-print { background: #185FA5; color: white; }
+  .btn-print:hover { background: #0C447C; }
+
+  .status { font-size: 13px; padding: 8px 12px; border-radius: var(--r); margin-top: 10px; display: none; }
+  .status.ok { background: var(--accent-l); color: var(--accent); display: block; }
+  .status.err { background: var(--warn-l); color: var(--warn); display: block; }
+  .status.loading { background: #E6F1FB; color: #185FA5; display: block; }
+
+  /* Print styles */
+  @media print {
+    .sidebar, .btn-row, .nav-item, .form-header, .status { display: none !important; }
+    .main { padding: 0; max-width: 100%; }
+    .form-page { display: block !important; }
+    .form-page:not(.active) { display: none !important; }
+    .card { border: none; padding: 10px 0; }
+    .consent-text { border: 1px solid #ccc; }
+    body { font-size: 12px; }
+    .print-header { display: block !important; text-align: center; margin-bottom: 20px; }
+    .print-title { font-size: 18px; font-weight: bold; }
+    .print-sub { font-size: 13px; color: #666; margin-top: 4px; }
+  }
+  .print-header { display: none; }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .sidebar { display: none; }
+    .main { padding: 14px; }
+    .row2, .row3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-title">路米動物醫院</div>
+    <div class="nav-item active" onclick="showForm('records')"><div class="nav-dot"></div>病歷查詢</div>
+    <div class="nav-item" onclick="showForm('surgery')"><div class="nav-dot"></div>手術及麻醉同意書</div>
+    <div class="nav-item" onclick="showForm('hospital')"><div class="nav-dot"></div>住院同意書</div>
+    <div class="nav-item" onclick="showForm('euthanasia')"><div class="nav-dot"></div>安樂死同意書</div>
+    <div class="nav-item" onclick="showForm('diagnosis')"><div class="nav-dot"></div>診斷證明書</div>
+    <div class="nav-item" onclick="showForm('discharge')"><div class="nav-dot"></div>自願出院同意書</div>
+    <div class="nav-item" onclick="showForm('abandon')"><div class="nav-dot"></div>放棄治療同意書</div>
+    <div class="nav-item" onclick="showForm('icu')"><div class="nav-dot"></div>重症看護同意書</div>
+    <div class="nav-item" onclick="showForm('dnr')"><div class="nav-dot"></div>不急救同意書</div>
+    <div class="nav-item" onclick="showForm('transfer')"><div class="nav-dot"></div>寵物轉讓同意書</div>
+    <div class="nav-item" onclick="showForm('inpatient')"><div class="nav-dot"></div>住院動物記錄表</div>
+  </div>
+
+  <div class="main">
+
+    <!-- 病歷查詢 -->
+    <div class="form-page active" id="form-records">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">病歷資料</div></div>
+      <div class="form-header"><div class="form-title">病歷查詢</div><div class="form-sub">以病歷號碼或電話查詢飼主與寵物基本資料</div></div>
+      <div class="card">
+        <div class="card-title">搜尋</div>
+        <div class="row2">
+          <div class="field"><label>病歷號碼</label><input type="text" id="search-medid" placeholder="例：A001"></div>
+          <div class="field"><label>飼主電話</label><input type="text" id="search-phone" placeholder="例：0912345678"></div>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-primary" onclick="searchRecord()">查詢</button>
+          <button class="btn btn-outline" onclick="clearSearch()">清除</button>
+        </div>
+      </div>
+      <div id="search-result"></div>
+    </div>
+
+    <!-- 手術及麻醉同意書 -->
+    <div class="form-page" id="form-surgery">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">手術及麻醉同意書</div></div>
+      <div class="form-header"><div class="form-title">手術及麻醉同意書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="s-medid" placeholder="病歷號碼"></div>
+          <div class="field"><label>動物名</label><input type="text" id="s-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="s-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="s-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="s-doctor"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">同意書內文</div>
+        <div class="consent-text">
+          本院所有之<input class="fill-blank" id="s-petname2" style="min-width:60px;" placeholder="動物名">，須接受
+          <input class="fill-blank" id="s-surgery-item" style="min-width:160px;" placeholder="手術項目">
+          以及必要之 □鎮靜 □麻醉程序。立同意書人(本人)對於施行該項手術之目的、預估費用、過程、成功率，或可能發生之感染、藥物反應、過敏反應、併發症等危險性，業經貴院醫師詳細說明，已充分了解。本人亦同意醫學並非一種精確的科學，且了解不同個體及體質的動物對手術治療之反應及併發症有所不同，貴院在道德上及法律上均無法保證治療程序的結果，但本人相信貴院一定會基於動物最大福祉，做能力範圍內最好的處置。茲同意貴院施行該項手術及必要之麻醉。若在執行手術時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因手術或麻醉之後果，對貴院提出任何異議或要求。
+        </div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="s-sign"></div>
+          <div class="field"><label>身分證號碼</label><input type="text" id="s-id"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>緊急聯絡人</label><input type="text" id="s-emergency"></div>
+          <div class="field"><label>聯絡電話</label><input type="text" id="s-ephone"></div>
+        </div>
+        <div class="field"><label>日期</label><input type="date" id="s-date"></div>
+        <div class="field"><label>備注</label><textarea id="s-note"></textarea></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('surgery')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('surgery')">清除</button>
+      </div>
+      <div class="status" id="status-surgery"></div>
+    </div>
+
+    <!-- 住院同意書 -->
+    <div class="form-page" id="form-hospital">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">住院同意書</div></div>
+      <div class="form-header"><div class="form-title">住院同意書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="h-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="h-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="h-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="h-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="h-doctor"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">同意書內文</div>
+        <div class="consent-text">
+          因 <input class="fill-blank" id="h-reason" style="min-width:120px;" placeholder="住院原因"> 術後照顧，需 □住院 □留院 治療，立同意書人業經貴院詳細說明，並已充分了解下列事項：1. 住/留院之原因。2. 住/留院時可能出現之危險性。本人相信貴院一定會基於動物最大福祉，做能力範圍內最好的處置。若在住院期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果對貴院提出任何異議或要求。
+        </div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="h-sign"></div>
+          <div class="field"><label>身分證號碼</label><input type="text" id="h-id"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>緊急聯絡人</label><input type="text" id="h-emergency"></div>
+          <div class="field"><label>聯絡電話</label><input type="text" id="h-ephone"></div>
+        </div>
+        <div class="field"><label>日期</label><input type="date" id="h-date"></div>
+        <div class="field"><label>備注</label><textarea id="h-note"></textarea></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('hospital')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('hospital')">清除</button>
+      </div>
+      <div class="status" id="status-hospital"></div>
+    </div>
+
+    <!-- 安樂死同意書 -->
+    <div class="form-page" id="form-euthanasia">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">安樂死同意書</div></div>
+      <div class="form-header"><div class="form-title">安樂死同意書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="eu-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="eu-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="eu-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="eu-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="eu-doctor"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">同意書內文</div>
+        <div class="consent-text">
+          茲因本人 <input class="fill-blank" id="eu-owner2" placeholder="飼主姓名"> 之所有寵物（犬/貓）<input class="fill-blank" id="eu-petname2" placeholder="動物名">，同意接受安樂術，立同意書人對於施行安樂術之原因、過程，業經貴院醫師詳細說明已充分瞭解，茲同意由貴院施行安樂術及必要之麻醉與處置，深信貴院醫師已善盡診療責任，概與貴院醫師及醫務人員無涉，絕無異議。<br><br>
+          安樂死原因：<input class="fill-blank" id="eu-reason" style="min-width:200px;" placeholder="請填寫原因">
+        </div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="eu-sign"></div>
+          <div class="field"><label>身分證號碼</label><input type="text" id="eu-id"></div>
+        </div>
+        <div class="field"><label>日期</label><input type="date" id="eu-date"></div>
+        <div class="field"><label>備注</label><textarea id="eu-note"></textarea></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('euthanasia')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('euthanasia')">清除</button>
+      </div>
+      <div class="status" id="status-euthanasia"></div>
+    </div>
+
+    <!-- 診斷證明書 -->
+    <div class="form-page" id="form-diagnosis">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">診斷證明書</div></div>
+      <div class="form-header"><div class="form-title">診斷證明書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="dx-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="dx-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="dx-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="dx-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="dx-doctor"></div>
+        </div>
+        <div class="field"><label>診斷內容</label><textarea id="dx-content" placeholder="請填寫診斷結果與說明" style="min-height:100px;"></textarea></div>
+        <div class="row2">
+          <div class="field"><label>立書人簽章</label><input type="text" id="dx-sign"></div>
+          <div class="field"><label>日期</label><input type="date" id="dx-date"></div>
+        </div>
+        <div class="field"><label>備注</label><textarea id="dx-note"></textarea></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('diagnosis')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('diagnosis')">清除</button>
+      </div>
+      <div class="status" id="status-diagnosis"></div>
+    </div>
+
+    <!-- 自願出院同意書 -->
+    <div class="form-page" id="form-discharge">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">自願出院同意書</div></div>
+      <div class="form-header"><div class="form-title">自願出院同意書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="dc-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="dc-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="dc-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="dc-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="dc-doctor"></div>
+        </div>
+        <div class="field"><label>出院原因</label><textarea id="dc-reason"></textarea></div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="dc-sign"></div>
+          <div class="field"><label>身分證號碼</label><input type="text" id="dc-id"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>緊急聯絡人</label><input type="text" id="dc-emergency"></div>
+          <div class="field"><label>聯絡電話</label><input type="text" id="dc-ephone"></div>
+        </div>
+        <div class="field"><label>日期</label><input type="date" id="dc-date"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('discharge')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('discharge')">清除</button>
+      </div>
+      <div class="status" id="status-discharge"></div>
+    </div>
+
+    <!-- 放棄治療同意書 -->
+    <div class="form-page" id="form-abandon">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">放棄治療同意書</div></div>
+      <div class="form-header"><div class="form-title">放棄治療同意書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="ab-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="ab-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="ab-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="ab-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="ab-doctor"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">同意書內文</div>
+        <div class="consent-text">
+          立同意書人 <input class="fill-blank" id="ab-owner2" placeholder="飼主姓名"> 寵物種別 <input class="fill-blank" id="ab-species" placeholder="犬/貓">，經本人送至貴院治療，今日因個人因素決定停止服藥。本人同意下列各款約定：自願放棄繼續治療，並了解放棄治療可能對動物造成之影響與風險，概與貴院醫師及醫務人員無涉，絕無異議。<br><br>
+          放棄原因：<textarea class="fill-blank" id="ab-reason" style="min-width:300px;min-height:50px;" placeholder="請填寫原因"></textarea>
+        </div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="ab-sign"></div>
+          <div class="field"><label>日期</label><input type="date" id="ab-date"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('abandon')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('abandon')">清除</button>
+      </div>
+      <div class="status" id="status-abandon"></div>
+    </div>
+
+    <!-- 重症看護同意書 -->
+    <div class="form-page" id="form-icu">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">重症看護同意書</div></div>
+      <div class="form-header"><div class="form-title">重症看護同意書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="icu-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="icu-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="icu-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="icu-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="icu-doctor"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">同意書內文</div>
+        <div class="consent-text">
+          因患 <input class="fill-blank" id="icu-disease" style="min-width:160px;" placeholder="病症描述">，須接受夜間重症看護。立同意書人(本人)對於施行看護目的、費用、過程，或可能發生之併發症、危險性，業經貴院醫師詳細解說，已充分了解。本人相信貴院定會基於動物的最大福祉，做能力範圍內最好的處置。若在看護時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果，而對貴院提出任何異議或要求。
+        </div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="icu-sign"></div>
+          <div class="field"><label>身分證號碼</label><input type="text" id="icu-id"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>緊急聯絡人</label><input type="text" id="icu-emergency"></div>
+          <div class="field"><label>聯絡電話</label><input type="text" id="icu-ephone"></div>
+        </div>
+        <div class="field"><label>日期</label><input type="date" id="icu-date"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('icu')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('icu')">清除</button>
+      </div>
+      <div class="status" id="status-icu"></div>
+    </div>
+
+    <!-- 不急救同意書 -->
+    <div class="form-page" id="form-dnr">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">不急救同意書</div></div>
+      <div class="form-header"><div class="form-title">不急救同意書（DNR）</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="dnr-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="dnr-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="dnr-owner"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>電話</label><input type="text" id="dnr-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="dnr-doctor"></div>
+        </div>
+        <div class="field"><label>病症描述</label><textarea id="dnr-disease"></textarea></div>
+      </div>
+      <div class="card">
+        <div class="card-title">同意書內文</div>
+        <div class="consent-text">
+          立同意書人(本人)對於施行看護目的、費用、過程，或可能發生之併發症、危險性，業經貴院醫師詳細解說，已充分了解。本人相信貴院定會基於動物的最大福祉，做能力範圍內最好的處置。若在看護時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果，而對貴院提出任何異議或要求。本人同意若動物發生心跳停止、呼吸停止等緊急情況，不施行心肺復甦術（CPR）等急救措施。
+        </div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="dnr-sign"></div>
+          <div class="field"><label>身分證號碼</label><input type="text" id="dnr-id"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>緊急聯絡人</label><input type="text" id="dnr-emergency"></div>
+          <div class="field"><label>聯絡電話</label><input type="text" id="dnr-ephone"></div>
+        </div>
+        <div class="field"><label>日期</label><input type="date" id="dnr-date"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('dnr')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('dnr')">清除</button>
+      </div>
+      <div class="status" id="status-dnr"></div>
+    </div>
+
+    <!-- 寵物轉讓同意書 -->
+    <div class="form-page" id="form-transfer">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">寵物轉讓同意書</div></div>
+      <div class="form-header"><div class="form-title">寵物轉讓同意書</div></div>
+      <div class="card">
+        <div class="card-title">基本資料</div>
+        <div class="row3">
+          <div class="field"><label>病歷號碼</label><input type="text" id="tr-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="tr-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="tr-owner"></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>電話</label><input type="text" id="tr-phone"></div>
+          <div class="field"><label>性別</label><select id="tr-gender"><option>公</option><option>母</option></select></div>
+          <div class="field"><label>毛色</label><input type="text" id="tr-color"></div>
+        </div>
+        <div class="field"><label>轉讓原因</label><textarea id="tr-reason"></textarea></div>
+        <div class="row2">
+          <div class="field"><label>立書同意人簽章</label><input type="text" id="tr-sign"></div>
+          <div class="field"><label>日期</label><input type="date" id="tr-date"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('transfer')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('transfer')">清除</button>
+      </div>
+      <div class="status" id="status-transfer"></div>
+    </div>
+
+    <!-- 住院動物記錄表 -->
+    <div class="form-page" id="form-inpatient">
+      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">住院動物記錄表</div></div>
+      <div class="form-header"><div class="form-title">住院動物記錄表</div></div>
+      <div class="card">
+        <div class="row3">
+          <div class="field"><label>住院日期</label><input type="date" id="ip-checkin"></div>
+          <div class="field"><label>病歷號碼</label><input type="text" id="ip-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="ip-petname"></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>種別</label><select id="ip-species"><option>犬</option><option>貓</option><option>其他</option></select></div>
+          <div class="field"><label>品種</label><input type="text" id="ip-breed"></div>
+          <div class="field"><label>住院天數</label><input type="number" id="ip-days" min="1"></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>主治醫師</label><input type="text" id="ip-doctor"></div>
+          <div class="field"><label>主人姓名</label><input type="text" id="ip-owner"></div>
+          <div class="field"><label>電話</label><input type="text" id="ip-phone"></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>年齡</label><input type="text" id="ip-age"></div>
+          <div class="field"><label>性別</label><select id="ip-gender"><option value="">不確定</option><option value="公">公</option><option value="母">母</option></select></div>
+          <div class="field"><label>是否結紮</label><select id="ip-neuter"><option value="">不確定</option><option value="是">是</option><option value="否">否</option></select></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>出院日期</label><input type="date" id="ip-checkout"></div>
+          <div class="field"><label>備注</label><input type="text" id="ip-note"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="submitForm('inpatient')">儲存至試算表</button>
+        <button class="btn btn-print" onclick="printForm()">列印</button>
+        <button class="btn btn-outline" onclick="clearForm('inpatient')">清除</button>
+      </div>
+      <div class="status" id="status-inpatient"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ★ 貼上你的 Google Apps Script URL
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwKOG7MMYSRli-HCCsJsBGV6OsWViHDvqcd-7cdPcVExJPzUbrXhmtlDTcCCOxfPJxlJA/exec";
+
+function showForm(id) {
+  document.querySelectorAll(".form-page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("form-" + id).classList.add("active");
+  event.currentTarget.classList.add("active");
+}
+
+function printForm() { window.print(); }
+
+function showStatus(id, msg, type) {
+  const el = document.getElementById("status-" + id);
+  el.textContent = msg; el.className = "status " + type;
+  if (type === "ok") setTimeout(() => el.className = "status", 3000);
+}
+
+function clearForm(type) {
+  document.querySelectorAll("#form-" + type + " input, #form-" + type + " textarea, #form-" + type + " select").forEach(el => {
+    if (el.tagName === "SELECT") el.selectedIndex = 0;
+    else el.value = "";
+  });
+}
+
+function clearSearch() {
+  document.getElementById("search-medid").value = "";
+  document.getElementById("search-phone").value = "";
+  document.getElementById("search-result").innerHTML = "";
+}
+
+// 收集各表單的欄位值
+function collectFields(type) {
+  const get = id => (document.getElementById(id) || {}).value || "";
+  const maps = {
+    surgery: { "病歷號碼":get("s-medid"), "動物名":get("s-petname"), "飼主姓名":get("s-owner"), "電話":get("s-phone"), "手術項目":get("s-surgery-item"), "醫師":get("s-doctor"), "立書人簽章":get("s-sign"), "身分證號":get("s-id"), "緊急聯絡人":get("s-emergency"), "聯絡電話":get("s-ephone"), "日期":get("s-date"), "備注":get("s-note") },
+    hospital: { "病歷號碼":get("h-medid"), "動物名":get("h-petname"), "飼主姓名":get("h-owner"), "電話":get("h-phone"), "住院原因":get("h-reason"), "醫師":get("h-doctor"), "立書人簽章":get("h-sign"), "身分證號":get("h-id"), "緊急聯絡人":get("h-emergency"), "聯絡電話":get("h-ephone"), "日期":get("h-date"), "備注":get("h-note") },
+    euthanasia: { "病歷號碼":get("eu-medid"), "動物名":get("eu-petname"), "飼主姓名":get("eu-owner"), "電話":get("eu-phone"), "安樂死原因":get("eu-reason"), "醫師":get("eu-doctor"), "立書人簽章":get("eu-sign"), "身分證號":get("eu-id"), "日期":get("eu-date"), "備注":get("eu-note") },
+    diagnosis: { "病歷號碼":get("dx-medid"), "動物名":get("dx-petname"), "飼主姓名":get("dx-owner"), "電話":get("dx-phone"), "診斷內容":get("dx-content"), "醫師":get("dx-doctor"), "立書人簽章":get("dx-sign"), "日期":get("dx-date"), "備注":get("dx-note") },
+    discharge: { "病歷號碼":get("dc-medid"), "動物名":get("dc-petname"), "飼主姓名":get("dc-owner"), "電話":get("dc-phone"), "出院原因":get("dc-reason"), "醫師":get("dc-doctor"), "立書人簽章":get("dc-sign"), "身分證號":get("dc-id"), "緊急聯絡人":get("dc-emergency"), "聯絡電話":get("dc-ephone"), "日期":get("dc-date") },
+    abandon: { "病歷號碼":get("ab-medid"), "動物名":get("ab-petname"), "飼主姓名":get("ab-owner"), "電話":get("ab-phone"), "放棄原因":get("ab-reason"), "醫師":get("ab-doctor"), "立書人簽章":get("ab-sign"), "日期":get("ab-date") },
+    icu: { "病歷號碼":get("icu-medid"), "動物名":get("icu-petname"), "飼主姓名":get("icu-owner"), "電話":get("icu-phone"), "病症":get("icu-disease"), "醫師":get("icu-doctor"), "立書人簽章":get("icu-sign"), "身分證號":get("icu-id"), "緊急聯絡人":get("icu-emergency"), "聯絡電話":get("icu-ephone"), "日期":get("icu-date") },
+    dnr: { "病歷號碼":get("dnr-medid"), "動物名":get("dnr-petname"), "飼主姓名":get("dnr-owner"), "電話":get("dnr-phone"), "病症":get("dnr-disease"), "醫師":get("dnr-doctor"), "立書人簽章":get("dnr-sign"), "身分證號":get("dnr-id"), "緊急聯絡人":get("dnr-emergency"), "聯絡電話":get("dnr-ephone"), "日期":get("dnr-date") },
+    transfer: { "病歷號碼":get("tr-medid"), "動物名":get("tr-petname"), "飼主姓名":get("tr-owner"), "電話":get("tr-phone"), "性別":get("tr-gender"), "毛色":get("tr-color"), "轉讓原因":get("tr-reason"), "立書人簽章":get("tr-sign"), "日期":get("tr-date") },
+    inpatient: { "住院日期":get("ip-checkin"), "病歷號碼":get("ip-medid"), "動物名":get("ip-petname"), "種別":get("ip-species"), "住院天數":get("ip-days"), "主治醫師":get("ip-doctor"), "主人姓名":get("ip-owner"), "電話":get("ip-phone"), "品種":get("ip-breed"), "年齡":get("ip-age"), "性別":get("ip-gender"), "是否結紮":get("ip-neuter"), "備注":get("ip-note"), "出院日期":get("ip-checkout") },
+  };
+  return maps[type] || {};
+}
+
+async function submitForm(type) {
+  if (!SHEET_URL) {
+    showStatus(type, "⚠️ 尚未設定 Google Apps Script URL，請填入後重新上傳", "err");
+    return;
+  }
+  showStatus(type, "儲存中...", "loading");
+  try {
+    await fetch(SHEET_URL, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "new_form", formType: type, fields: collectFields(type) })
+    });
+    showStatus(type, "✅ 已成功儲存至 Google 試算表", "ok");
+  } catch(e) {
+    showStatus(type, "❌ 儲存失敗：" + e.message, "err");
+  }
+}
+
+function searchRecord() {
+  const medid = document.getElementById("search-medid").value.trim();
+  const phone = document.getElementById("search-phone").value.trim();
+  if (!medid && !phone) { alert("請輸入病歷號碼或電話"); return; }
+  // 顯示提示（實際查詢需透過 Apps Script 回傳資料，或直接在試算表中篩選）
+  document.getElementById("search-result").innerHTML = `
+    <div style="background:var(--accent-l);border:1px solid var(--accent-m);border-radius:var(--r);padding:14px;margin-top:10px;font-size:13px;color:var(--accent);">
+      查詢條件已記錄。請至 Google 試算表「病歷資料」分頁，使用 Ctrl+F 搜尋「${medid||phone}」，或使用篩選功能。<br><br>
+      <strong>建議：</strong>在試算表中開啟篩選功能（選取標題列 → 資料 → 建立篩選器），即可快速依任何欄位搜尋。
+    </div>`;
+}
+
+// 設定今天日期為預設值
+document.querySelectorAll("input[type=date]").forEach(el => {
+  if (!el.value) el.value = new Date().toISOString().slice(0,10);
+});
+</script>
+</body>
+</html>
