@@ -3,135 +3,108 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>初診資料登載 — NxVet 動物醫院</title>
+<title>初診資料登載 — LUMI 路米動物醫院</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-  :root {
-    --bg: #F7F6F2;
-    --surface: #FFFFFF;
-    --border: #E4E2D8;
-    --border-strong: #C8C5BB;
-    --text: #1A1916;
-    --text-secondary: #6B6860;
-    --text-hint: #9B9890;
-    --accent: #2D6A4F;
-    --accent-light: #E8F3EE;
-    --accent-mid: #52B788;
-    --warn: #B5541C;
-    --warn-light: #FDF0E8;
-    --radius: 8px;
-    --radius-lg: 12px;
-    --sans: 'Noto Sans TC', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; min-height: 100vh; }
-
-  /* Header */
-  .app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 50; }
-  .app-logo { width: 34px; height: 34px; background: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; }
-  .app-logo svg { width: 20px; height: 20px; fill: white; }
-  .app-header-text { flex: 1; }
-  .app-title { font-size: 15px; font-weight: 500; }
-  .app-subtitle { font-size: 12px; color: var(--text-secondary); }
-
-  /* Step indicator */
-  .step-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 16px; display: flex; }
-  .step-tab { flex: 1; padding: 12px 8px; text-align: center; font-size: 12px; color: var(--text-hint); border-bottom: 2px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .step-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .step-tab.done { color: var(--text-secondary); }
-  .step-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; }
-  .step-tab.active .step-dot { background: var(--accent); color: white; }
-  .step-tab.done .step-dot { background: var(--accent-mid); color: white; font-size: 9px; }
-
-  /* Pages */
-  .page { display: none; padding: 16px; max-width: 560px; margin: 0 auto; }
-  .page.active { display: block; }
-
-  /* Cards */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
-  .card-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-
-  /* Fields */
-  .field { margin-bottom: 14px; }
-  .field:last-child { margin-bottom: 0; }
-  label { font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 5px; }
-  .req { color: #E24B4A; }
-  input[type=text], input[type=tel], input[type=email], input[type=date], input[type=datetime-local], select, textarea {
-    width: 100%; padding: 10px 12px; font-size: 15px; border: 1px solid var(--border);
-    border-radius: var(--radius); background: var(--surface); color: var(--text);
-    font-family: var(--sans); appearance: none; -webkit-appearance: none;
-  }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-mid); box-shadow: 0 0 0 3px rgba(82,183,136,0.15); }
-  textarea { resize: vertical; min-height: 72px; line-height: 1.6; }
-  .hint { font-size: 12px; color: var(--text-hint); margin-top: 4px; }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-  /* Gender selector */
-  .gender-btns { display: flex; gap: 8px; }
-  .gender-btn { flex: 1; padding: 9px; text-align: center; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; cursor: pointer; color: var(--text-secondary); background: var(--surface); transition: all 0.15s; }
-  .gender-btn.sel { background: var(--accent-light); border-color: var(--accent-mid); color: var(--accent); font-weight: 500; }
-
-  /* Checkbox list */
-  .check-list { display: flex; flex-direction: column; gap: 8px; }
-  .check-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; background: var(--surface); transition: all 0.15s; }
-  .check-item:hover { background: var(--bg); }
-  .check-item.checked { background: var(--accent-light); border-color: var(--accent-mid); }
-  .check-item input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
-  .check-item label { font-size: 14px; color: var(--text); cursor: pointer; margin: 0; flex: 1; }
-
-  /* Email consent */
-  .consent-box { background: #FFFBF0; border: 1px solid #E8C97A; border-radius: var(--radius); padding: 12px 14px; margin-top: 10px; font-size: 13px; display: none; }
-  .consent-box.show { display: block; }
-  .consent-box-title { font-weight: 500; color: #7A5A00; margin-bottom: 6px; }
-  .consent-box-desc { color: #6B5500; margin-bottom: 10px; line-height: 1.6; }
-  .consent-btns { display: flex; gap: 8px; }
-  .consent-btn { flex: 1; padding: 8px; text-align: center; border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 13px; cursor: pointer; background: var(--surface); color: var(--text-secondary); }
-  .consent-btn.sel { background: var(--accent-light); border-color: var(--accent-mid); color: var(--accent); font-weight: 500; }
-
-  /* Buttons */
-  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
-  .btn { flex: 1; padding: 13px; border-radius: var(--radius); font-size: 15px; font-weight: 500; cursor: pointer; font-family: var(--sans); border: none; transition: all 0.15s; }
-  .btn-primary { background: var(--accent); color: white; }
-  .btn-primary:hover { background: #235C3E; }
-  .btn-primary:active { transform: scale(0.98); }
-  .btn-primary:disabled { background: var(--border-strong); cursor: not-allowed; }
-  .btn-back { background: var(--surface); color: var(--text-secondary); border: 1px solid var(--border-strong) !important; flex: 0 0 80px; }
-  .btn-back:hover { background: var(--bg); }
-
-  /* Status */
-  .status { font-size: 13px; padding: 10px 12px; border-radius: var(--radius); margin-top: 10px; display: none; }
-  .status.loading { background: #E6F1FB; color: #185FA5; display: block; }
-  .status.error { background: var(--warn-light); color: var(--warn); display: block; }
-  .status.success { background: var(--accent-light); color: var(--accent); display: block; }
-
-  /* Success page */
-  .success-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--accent-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
-  .success-title { font-size: 20px; font-weight: 500; text-align: center; margin-bottom: 6px; }
-  .success-sub { font-size: 14px; color: var(--text-secondary); text-align: center; margin-bottom: 20px; }
-  .result-row { background: var(--bg); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 8px; }
-  .result-label { font-size: 11px; color: var(--text-hint); margin-bottom: 2px; }
-  .result-val { font-size: 13px; font-family: monospace; color: var(--text); word-break: break-all; }
-  .med-id-section { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
-  .med-id-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; }
-  .med-id-hint { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
-  .med-id-row { display: flex; gap: 8px; }
-  .med-id-row input { flex: 1; }
-  .med-id-row button { padding: 10px 16px; background: var(--accent); color: white; border: none; border-radius: var(--radius); font-size: 14px; cursor: pointer; font-family: var(--sans); white-space: nowrap; }
-  .med-id-row button:hover { background: #235C3E; }
+:root {
+  --navy:#1C2B4A;--navy-d:#131E34;--navy-l:#243558;
+  --gold:#C9A96E;--gold-l:#E8D5B0;--gold-d:#A8844A;
+  --cream:#F8F5EF;--white:#FFFFFF;
+  --text:#1C2B4A;--text-s:#4A5568;--text-h:#8A9BB5;
+  --border:rgba(28,43,74,0.12);--border-g:rgba(201,169,110,0.3);
+  --r:4px;--rl:8px;
+  --sans:'Noto Sans TC',sans-serif;--serif:'Cormorant Garamond',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--cream);color:var(--text);font-size:15px;line-height:1.6;min-height:100vh;}
+.header{background:var(--navy);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;}
+.hlm{display:flex;align-items:center;gap:12px;}
+.hlm-mark{width:36px;height:36px;border:1.5px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.hlm-mark svg{width:18px;height:18px;fill:var(--gold);}
+.hlm-name{color:var(--gold-l);font-family:var(--serif);font-size:17px;letter-spacing:.04em;}
+.hlm-sub{color:rgba(255,255,255,.45);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-top:1px;}
+.hbadge{background:rgba(201,169,110,.15);border:1px solid var(--border-g);color:var(--gold-l);font-size:11px;padding:4px 12px;border-radius:20px;letter-spacing:.05em;}
+.step-bar{background:var(--navy-d);display:flex;padding:0 20px;border-bottom:1px solid rgba(201,169,110,.15);}
+.step-tab{flex:1;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:rgba(255,255,255,.3);letter-spacing:.04em;border-bottom:2px solid transparent;transition:all .2s;}
+.step-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.step-tab.done{color:rgba(201,169,110,.5);}
+.step-dot{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:rgba(255,255,255,.4);}
+.step-tab.active .step-dot{background:var(--gold);border-color:var(--gold);color:var(--navy);}
+.step-tab.done .step-dot{background:rgba(201,169,110,.2);border-color:var(--gold-d);color:var(--gold-d);}
+.page{display:none;padding:20px 16px 40px;max-width:560px;margin:0 auto;}
+.page.active{display:block;}
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:4px;}
+.sl{flex:1;height:1px;background:var(--border-g);}
+.st{font-family:var(--serif);font-size:16px;color:var(--gold-d);letter-spacing:.06em;white-space:nowrap;}
+.card{background:var(--white);border:1px solid var(--border);border-top:2px solid var(--gold);border-radius:var(--rl);padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(28,43,74,.06);}
+.cl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-d);font-weight:500;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.field{margin-bottom:14px;}
+.field:last-child{margin-bottom:0;}
+label{font-size:12px;color:var(--text-s);display:block;margin-bottom:5px;letter-spacing:.02em;}
+.req{color:var(--gold-d);}
+input[type=text],input[type=tel],input[type=email],input[type=date],input[type=datetime-local],select,textarea{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--border);border-radius:var(--r);background:var(--cream);color:var(--text);font-family:var(--sans);appearance:none;-webkit-appearance:none;transition:border-color .15s,box-shadow .15s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);background:var(--white);box-shadow:0 0 0 3px rgba(201,169,110,.12);}
+textarea{resize:vertical;min-height:68px;line-height:1.6;}
+.hint{font-size:11px;color:var(--text-h);margin-top:4px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tg{display:flex;gap:6px;}
+.tb{flex:1;padding:9px 6px;text-align:center;border:1px solid var(--border);border-radius:var(--r);font-size:13px;cursor:pointer;color:var(--text-s);background:var(--cream);transition:all .15s;font-family:var(--sans);}
+.tb:hover{border-color:var(--gold-d);color:var(--text);}
+.tb.sel{background:var(--navy);border-color:var(--navy);color:var(--gold-l);font-weight:500;}
+.check-list{display:flex;flex-direction:column;gap:8px;}
+.check-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--cream);transition:all .15s;}
+.check-item:hover{border-color:var(--gold-d);background:#faf7f1;}
+.check-item.checked{background:#f5f0e4;border-color:var(--gold);}
+.check-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--navy);cursor:pointer;flex-shrink:0;}
+.check-item label{font-size:14px;color:var(--text);cursor:pointer;margin:0;flex:1;}
+.cbox{background:#fdf8ee;border:1px solid var(--gold);border-radius:var(--r);padding:14px;margin-top:12px;font-size:13px;display:none;}
+.cbox.show{display:block;}
+.cbox-t{font-weight:500;color:var(--gold-d);margin-bottom:6px;}
+.cbox-d{color:var(--text-s);margin-bottom:10px;line-height:1.6;}
+.cbtns{display:flex;gap:8px;}
+.cbtn{flex:1;padding:8px;text-align:center;border:1px solid var(--border);border-radius:var(--r);font-size:13px;cursor:pointer;background:var(--white);color:var(--text-s);transition:all .15s;font-family:var(--sans);}
+.cbtn.sel{background:var(--navy);border-color:var(--navy);color:var(--gold-l);}
+.btn-row{display:flex;gap:10px;margin-top:6px;}
+.btn{flex:1;padding:13px;border-radius:var(--r);font-size:14px;font-weight:500;cursor:pointer;font-family:var(--sans);border:none;transition:all .2s;letter-spacing:.03em;}
+.btn-p{background:var(--navy);color:var(--gold-l);border:1px solid var(--navy);}
+.btn-p:hover{background:var(--navy-l);}
+.btn-p:active{transform:scale(.98);}
+.btn-p:disabled{background:var(--text-h);border-color:var(--text-h);cursor:not-allowed;color:rgba(255,255,255,.5);}
+.btn-b{background:transparent;color:var(--text-s);border:1px solid var(--border)!important;flex:0 0 88px;}
+.btn-b:hover{background:var(--white);border-color:var(--gold-d)!important;color:var(--text);}
+.status{font-size:13px;padding:10px 12px;border-radius:var(--r);margin-top:10px;display:none;}
+.status.loading{background:rgba(28,43,74,.06);color:var(--navy);border:1px solid var(--border);display:block;}
+.status.error{background:#fdf0f0;color:#c0392b;border:1px solid #f5c6c6;display:block;}
+.status.success{background:#f0f7f0;color:#2d7a2d;border:1px solid #b8ddb8;display:block;}
+.sw{text-align:center;padding:12px 0 20px;}
+.sc{width:72px;height:72px;border-radius:50%;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;}
+.sc svg{width:30px;height:30px;stroke:var(--gold);fill:none;}
+.s-title{font-family:var(--serif);font-size:22px;color:var(--navy);margin-bottom:6px;letter-spacing:.04em;}
+.s-sub{font-size:13px;color:var(--text-s);margin-bottom:22px;line-height:1.7;}
+.rr{background:var(--cream);border-radius:var(--r);padding:10px 14px;margin-bottom:8px;text-align:left;}
+.rl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-h);margin-bottom:3px;}
+.rv{font-size:12px;font-family:monospace;color:var(--text);word-break:break-all;}
+.mid{border-top:1px solid var(--border-g);padding-top:16px;margin-top:16px;text-align:left;}
+.mid-t{font-size:13px;font-weight:500;margin-bottom:4px;color:var(--navy);}
+.mid-h{font-size:12px;color:var(--text-h);margin-bottom:10px;}
+.mid-row{display:flex;gap:8px;}
+.mid-row input{flex:1;}
+.mid-row button{padding:10px 16px;background:var(--navy);color:var(--gold-l);border:none;border-radius:var(--r);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap;transition:background .15s;}
+.mid-row button:hover{background:var(--navy-l);}
+.footer{text-align:center;padding:24px 16px;color:var(--text-h);font-size:11px;letter-spacing:.05em;border-top:1px solid var(--border-g);max-width:560px;margin:0 auto;}
+.footer-logo{font-family:var(--serif);font-size:14px;color:var(--gold-d);margin-bottom:4px;}
+@media(max-width:400px){.row2{grid-template-columns:1fr;}.hbadge{display:none;}}
 </style>
 </head>
 <body>
-
-<div class="app-header">
-  <div class="app-logo">
-    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+<div class="header">
+  <div class="hlm">
+    <div class="hlm-mark"><svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg></div>
+    <div><div class="hlm-name">LUMI 路米動物醫院</div><div class="hlm-sub">犬貓專科分科醫院</div></div>
   </div>
-  <div class="app-header-text">
-    <div class="app-title">初診資料登載</div>
-    <div class="app-subtitle">NxVet 動物醫院</div>
-  </div>
+  <div class="hbadge">初診登載</div>
 </div>
-
 <div class="step-bar">
   <div class="step-tab active" id="st1"><div class="step-dot" id="sd1">1</div><span>飼主資料</span></div>
   <div class="step-tab" id="st2"><div class="step-dot" id="sd2">2</div><span>寵物資料</span></div>
@@ -139,468 +112,217 @@
   <div class="step-tab" id="st4"><div class="step-dot" id="sd4">4</div><span>完成</span></div>
 </div>
 
-<!-- Page 1: 飼主資料 -->
 <div class="page active" id="pg1">
+  <div class="sh"><div class="sl"></div><div class="st">飼主基本資料</div><div class="sl"></div></div>
   <div class="card">
-    <div class="card-title">飼主基本資料</div>
-    <div class="field">
-      <label>姓名 <span class="req">*</span></label>
-      <input type="text" id="ownerName" placeholder="請輸入飼主姓名" autocomplete="name">
-    </div>
-    <div class="field">
-      <label>聯絡電話 <span class="req">*</span></label>
-      <input type="tel" id="ownerPhone" placeholder="例：0912345678" autocomplete="tel">
-      <div class="hint">系統將以電話確認是否為舊有飼主</div>
-    </div>
-    <div class="field">
-      <label>電子郵件</label>
-      <input type="email" id="ownerEmail" placeholder="example@mail.com（選填）" autocomplete="email">
-    </div>
-    <div class="field">
-      <label>地址</label>
-      <input type="text" id="ownerAddress" placeholder="請輸入地址（選填）" autocomplete="street-address">
-    </div>
-    <div class="field">
-      <label>備注</label>
-      <textarea id="ownerInfo" placeholder="備注事項（選填）"></textarea>
-    </div>
+    <div class="cl">Owner Information</div>
+    <div class="field"><label>姓名 <span class="req">*</span></label><input type="text" id="ownerName" placeholder="請輸入飼主姓名" autocomplete="name"></div>
+    <div class="field"><label>聯絡電話 <span class="req">*</span></label><input type="tel" id="ownerPhone" placeholder="例：0912345678" autocomplete="tel"><div class="hint">系統將以電話確認是否為舊有飼主</div></div>
+    <div class="field"><label>電子郵件</label><input type="email" id="ownerEmail" placeholder="example@mail.com（選填）" autocomplete="email"></div>
+    <div class="field"><label>地址</label><input type="text" id="ownerAddress" placeholder="請輸入地址（選填）" autocomplete="street-address"></div>
+    <div class="field"><label>備注</label><textarea id="ownerInfo" placeholder="備注事項（選填）"></textarea></div>
   </div>
-  <div class="btn-row">
-    <button class="btn btn-primary" onclick="toPage2()">下一步：寵物資料 →</button>
-  </div>
+  <div class="btn-row"><button class="btn btn-p" onclick="toPage2()">下一步：寵物資料 →</button></div>
 </div>
 
-<!-- Page 2: 寵物資料 -->
 <div class="page" id="pg2">
+  <div class="sh"><div class="sl"></div><div class="st">寵物基本資料</div><div class="sl"></div></div>
   <div class="card">
-    <div class="card-title">寵物基本資料</div>
-    <div class="field">
-      <label>寵物名稱 <span class="req">*</span></label>
-      <input type="text" id="petName" placeholder="請輸入寵物名稱">
-    </div>
+    <div class="cl">Pet Information</div>
+    <div class="field"><label>寵物名稱 <span class="req">*</span></label><input type="text" id="petName" placeholder="請輸入寵物名稱"></div>
     <div class="row2">
-      <div class="field">
-        <label>物種 <span class="req">*</span></label>
-        <select id="petKind" onchange="updateBreeds()">
-          <option value="">選擇物種</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>品種</label>
-        <select id="petBreed">
-          <option value="">選擇品種</option>
-        </select>
-      </div>
+      <div class="field"><label>物種 <span class="req">*</span></label><select id="petKind" onchange="updateBreeds()"><option value="">選擇物種</option></select></div>
+      <div class="field"><label>品種</label><select id="petBreed"><option value="">選擇品種</option></select></div>
     </div>
-    <div class="field">
-      <label>性別</label>
-      <div class="gender-btns">
-        <div class="gender-btn" onclick="selGender('Male',this)">公</div>
-        <div class="gender-btn" onclick="selGender('Female',this)">母</div>
-        <div class="gender-btn" onclick="selGender('',this)">不確定</div>
-      </div>
-    </div>
-    <div class="field">
-      <label>生日</label>
-      <input type="date" id="petBirth">
-    </div>
-    <div class="field">
-      <label>是否結紮</label>
-      <div class="gender-btns">
-        <div class="gender-btn" onclick="selNeuter('是',this)">已結紮</div>
-        <div class="gender-btn" onclick="selNeuter('否',this)">未結紮</div>
-        <div class="gender-btn" onclick="selNeuter('不知',this)">不確定</div>
-      </div>
-    </div>
+    <div class="field"><label>性別</label><div class="tg" id="gG"><div class="tb" onclick="selGender('Male',this)">公</div><div class="tb" onclick="selGender('Female',this)">母</div><div class="tb" onclick="selGender('',this)">不確定</div></div></div>
+    <div class="field"><label>生日</label><input type="date" id="petBirth"></div>
+    <div class="field"><label>是否結紮</label><div class="tg" id="nG"><div class="tb" onclick="selNeuter('是',this)">已結紮</div><div class="tb" onclick="selNeuter('否',this)">未結紮</div><div class="tb" onclick="selNeuter('不知',this)">不確定</div></div></div>
   </div>
-  <div class="btn-row">
-    <button class="btn btn-back btn" onclick="goPage(1)">← 返回</button>
-    <button class="btn btn-primary" onclick="toPage3()">下一步：就診資料 →</button>
-  </div>
+  <div class="btn-row"><button class="btn btn-b" onclick="goPage(1)">← 返回</button><button class="btn btn-p" onclick="toPage3()">下一步：就診資料 →</button></div>
 </div>
 
-<!-- Page 3: 就診資料 + 病歷紀錄 -->
 <div class="page" id="pg3">
+  <div class="sh"><div class="sl"></div><div class="st">就診資料</div><div class="sl"></div></div>
   <div class="card">
-    <div class="card-title">就診資料</div>
-    <div class="field">
-      <label>選擇醫師 <span class="req">*</span></label>
-      <select id="doctorSelect">
-        <option value="">載入中...</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>預約時間 <span class="req">*</span></label>
-      <input type="datetime-local" id="bookingTime">
-    </div>
-    <div class="field">
-      <label>就診科別</label>
-      <select id="divisionSelect">
-        <option value="一般看診">一般看診</option>
-        <option value="手術">手術</option>
-        <option value="皮膚科">皮膚科</option>
-        <option value="內科">內科</option>
-        <option value="外科">外科</option>
-        <option value="眼科">眼科</option>
-        <option value="牙科">牙科</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>主觀症狀</label>
-      <textarea id="symptom" placeholder="請描述寵物不適症狀或就診原因（選填）"></textarea>
-    </div>
+    <div class="cl">Appointment</div>
+    <div class="field"><label>選擇醫師 <span class="req">*</span></label><select id="doctorSelect"><option value="">載入中...</option></select></div>
+    <div class="field"><label>預約時間 <span class="req">*</span></label><input type="datetime-local" id="bookingTime"></div>
+    <div class="field"><label>就診科別</label><select id="divisionSelect"><option value="一般看診">一般看診</option><option value="心臟科">心臟科</option><option value="眼科">眼科</option><option value="腫瘤科">腫瘤科</option><option value="齒科">齒科</option><option value="神經科">神經科</option><option value="內科">內科</option><option value="中醫科">中醫科</option><option value="手術">手術</option><option value="急診">急診</option></select></div>
+    <div class="field"><label>主觀症狀</label><textarea id="symptom" placeholder="請描述寵物不適症狀或就診原因（選填）"></textarea></div>
   </div>
-
   <div class="card">
-    <div class="card-title">先前就診紀錄</div>
-    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">請勾選是否有以下先前就診資料：</div>
+    <div class="cl">先前就診紀錄</div>
+    <div style="font-size:13px;color:var(--text-s);margin-bottom:12px;">如有以下先前就診資料，請勾選：</div>
     <div class="check-list">
-      <div class="check-item" onclick="toggleCheck(this,'c_drug')">
-        <input type="checkbox" id="c_drug">
-        <label for="c_drug">先前用藥紀錄</label>
-      </div>
-      <div class="check-item" onclick="toggleCheck(this,'c_blood')">
-        <input type="checkbox" id="c_blood">
-        <label for="c_blood">血液檢查報告</label>
-      </div>
-      <div class="check-item" onclick="toggleCheck(this,'c_image')">
-        <input type="checkbox" id="c_image">
-        <label for="c_image">影像檢查報告（X光、超音波等）</label>
-      </div>
-      <div class="check-item" onclick="toggleCheck(this,'c_other')">
-        <input type="checkbox" id="c_other">
-        <label for="c_other">其他診療記錄</label>
-      </div>
+      <div class="check-item" onclick="toggleCheck(this,'c_drug')"><input type="checkbox" id="c_drug"><label for="c_drug">先前用藥紀錄</label></div>
+      <div class="check-item" onclick="toggleCheck(this,'c_blood')"><input type="checkbox" id="c_blood"><label for="c_blood">血液檢查報告</label></div>
+      <div class="check-item" onclick="toggleCheck(this,'c_image')"><input type="checkbox" id="c_image"><label for="c_image">影像檢查報告（X光、超音波等）</label></div>
+      <div class="check-item" onclick="toggleCheck(this,'c_other')"><input type="checkbox" id="c_other"><label for="c_other">其他診療記錄</label></div>
     </div>
-
-    <div class="consent-box" id="consentBox">
-      <div class="consent-box-title">📧 資料傳送同意確認</div>
-      <div class="consent-box-desc">您有先前的就診資料。是否同意將這些影像或文件以電子郵件附件方式寄送至院方信箱 lumiamc328@gmail.com，以便醫師事先了解病史？</div>
-      <div class="consent-btns">
-        <div class="consent-btn" id="consentYes" onclick="setConsent(true)">✓ 同意寄送</div>
-        <div class="consent-btn" id="consentNo" onclick="setConsent(false)">暫不寄送</div>
-      </div>
+    <div class="cbox" id="consentBox">
+      <div class="cbox-t">資料傳送同意確認</div>
+      <div class="cbox-d">是否同意將您的就診資料以電子郵件附件方式寄送至院方信箱 lumiamc328@gmail.com，以便醫師事先了解病史？</div>
+      <div class="cbtns"><div class="cbtn" id="consentYes" onclick="setConsent(true)">同意寄送</div><div class="cbtn" id="consentNo" onclick="setConsent(false)">暫不寄送</div></div>
     </div>
   </div>
-
-  <div class="btn-row">
-    <button class="btn btn-back btn" onclick="goPage(2)">← 返回</button>
-    <button class="btn btn-primary" id="submitBtn" onclick="submitAll()">送出資料</button>
-  </div>
+  <div class="btn-row"><button class="btn btn-b" onclick="goPage(2)">← 返回</button><button class="btn btn-p" id="submitBtn" onclick="submitAll()">送出資料</button></div>
   <div class="status" id="submitStatus"></div>
 </div>
 
-<!-- Page 4: 完成 -->
 <div class="page" id="pg4">
-  <div class="card" style="text-align:center;padding:28px 20px;">
-    <div class="success-icon">
-      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-        <circle cx="18" cy="18" r="16" stroke="#52B788" stroke-width="2.5"/>
-        <path d="M11 18.5l5 5 9-9" stroke="#52B788" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <div class="success-title">資料已成功送出</div>
-    <div class="success-sub">感謝您完成初診資料登載<br>院方將於就診前與您確認預約</div>
-
-    <div style="text-align:left;">
-      <div class="result-row"><div class="result-label">預約 ID</div><div class="result-val" id="res-booking">—</div></div>
-      <div class="result-row"><div class="result-label">寵物 ID</div><div class="result-val" id="res-pet">—</div></div>
-      <div class="result-row"><div class="result-label">飼主 ID</div><div class="result-val" id="res-user">—</div></div>
-    </div>
-
-    <!-- 院內人員用：設定病歷號 -->
-    <div class="med-id-section" id="medIDSection" style="display:none;">
-      <div class="med-id-title">⚕️ 院內設定病歷號碼</div>
-      <div class="med-id-hint">資料建檔後，院內人員可在此輸入自訂病歷號。儲存後系統將依號碼排序更新 Google 表單。</div>
-      <div class="med-id-row">
-        <input type="text" id="customMedID" placeholder="例：A001 或 20260416001">
-        <button onclick="saveMedID()">儲存</button>
+  <div class="card">
+    <div class="sw">
+      <div class="sc"><svg viewBox="0 0 32 32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="13"/><path d="M10 16.5l4.5 4.5 8-8"/></svg></div>
+      <div class="s-title">資料已成功送出</div>
+      <div class="s-sub">感謝您完成初診資料登載<br>院方將於就診前與您確認預約細節</div>
+      <div style="text-align:left;">
+        <div class="rr"><div class="rl">Booking ID</div><div class="rv" id="res-booking">—</div></div>
+        <div class="rr"><div class="rl">Pet ID</div><div class="rv" id="res-pet">—</div></div>
+        <div class="rr"><div class="rl">Owner ID</div><div class="rv" id="res-user">—</div></div>
       </div>
-      <div class="status" id="medIDStatus"></div>
+      <div class="mid" id="medIDSection" style="display:none;">
+        <div class="mid-t">院內設定病歷號碼</div>
+        <div class="mid-h">資料建檔後，院內人員可在此輸入自訂病歷號，儲存後系統將依號碼排序更新 Google 試算表。</div>
+        <div class="mid-row"><input type="text" id="customMedID" placeholder="例：A001 或 20260422001"><button onclick="saveMedID()">儲存</button></div>
+        <div class="status" id="medIDStatus"></div>
+      </div>
     </div>
-
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:8px;">
-      <button class="btn btn-back btn" style="flex:1;" onclick="showMedID()">院內設定病歷號</button>
-      <button class="btn btn-primary" style="flex:1;" onclick="resetAll()">新增下一位</button>
+    <div style="display:flex;gap:8px;padding-top:16px;border-top:1px solid var(--border);">
+      <button class="btn btn-b" style="flex:1;text-align:center;" onclick="showMedID()">設定病歷號</button>
+      <button class="btn btn-p" style="flex:1;" onclick="resetAll()">新增下一位</button>
     </div>
   </div>
 </div>
 
+<div class="footer">
+  <div class="footer-logo">LUMI Animal Medical Center</div>
+  10491 台北市中山區建國北路二段89號 ｜ 02-2516-3328
+</div>
+
 <script>
-const SERVER = "https://s7.nxvet.io";
-const TOKEN = "cabeCqstBn7den0SJvRHjUaptOrQ2kU7ZYfBVf1iGbI1yBVR7J2Q74tnk4gN6wdd";
-const EMAIL_TARGET = "lumiamc328@gmail.com";
-// 請在部署後填入你的 Google Apps Script URL：
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbwz7UfULvfJcoq8BdfKX4Ev8N4fhuzjweE1ZRG-SDG2sJ-VfHq45ePjSGRku9g_SR24YQ/exec";
-
-let gender = "";
-let neuter = "";
-let emailConsent = null;
-let kindData = [];
-let createdUserID = null, createdPetID = null, createdBookingID = null;
-
-function h() { return { "Authorization": "Bearer " + TOKEN, "Content-Type": "application/json" }; }
-async function apiGet(p) { const r = await fetch(SERVER+p,{headers:{"Authorization":"Bearer "+TOKEN}}); return r.json(); }
-async function apiPost(p,b) { const r = await fetch(SERVER+p,{method:"POST",headers:h(),body:JSON.stringify(b)}); return r.json(); }
-
-function showStatus(id, msg, type) {
-  const el = document.getElementById(id);
-  el.textContent = msg; el.className = "status " + type;
-}
-
-// Step indicator
-function goPage(n) {
-  for (let i=1;i<=4;i++) {
-    document.getElementById("pg"+i).classList.toggle("active", i===n);
-    const tab = document.getElementById("st"+i);
-    const dot = document.getElementById("sd"+i);
-    if (i<n) { tab.className="step-tab done"; dot.textContent="✓"; }
-    else if (i===n) { tab.className="step-tab active"; dot.textContent=i; }
-    else { tab.className="step-tab"; dot.textContent=i; }
+const SERVER="https://s7.nxvet.io";
+const TOKEN="cabeCqstBn7den0SJvRHjUaptOrQ2kU7ZYfBVf1iGbI1yBVR7J2Q74tnk4gN6wdd";
+const EMAIL_TARGET="lumiamc328@gmail.com";
+const SHEET_URL="https://script.google.com/macros/s/AKfycbwz7UfULvfJcoq8BdfKX4Ev8N4fhuzjweE1ZRG-SDG2sJ-VfHq45ePjSGRku9g_SR24YQ/exec";
+let gender="",neuter="",emailConsent=null,kindData=[];
+let createdUserID=null,createdPetID=null,createdBookingID=null;
+function h(){return{"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"};}
+async function apiGet(p){const r=await fetch(SERVER+p,{headers:{"Authorization":"Bearer "+TOKEN}});return r.json();}
+async function apiPost(p,b){const r=await fetch(SERVER+p,{method:"POST",headers:h(),body:JSON.stringify(b)});return r.json();}
+function showStatus(id,msg,type){const el=document.getElementById(id);el.textContent=msg;el.className="status "+type;}
+function goPage(n){
+  for(let i=1;i<=4;i++){
+    document.getElementById("pg"+i).classList.toggle("active",i===n);
+    const tab=document.getElementById("st"+i),dot=document.getElementById("sd"+i);
+    if(i<n){tab.className="step-tab done";dot.textContent="✓";}
+    else if(i===n){tab.className="step-tab active";dot.textContent=i;}
+    else{tab.className="step-tab";dot.textContent=i;}
   }
   window.scrollTo(0,0);
 }
-
-function toPage2() {
-  if (!document.getElementById("ownerName").value.trim()) { alert("請填寫飼主姓名"); return; }
-  if (!document.getElementById("ownerPhone").value.trim()) { alert("請填寫聯絡電話"); return; }
+function toPage2(){
+  if(!document.getElementById("ownerName").value.trim()){alert("請填寫飼主姓名");return;}
+  if(!document.getElementById("ownerPhone").value.trim()){alert("請填寫聯絡電話");return;}
   goPage(2);
 }
-
-function toPage3() {
-  if (!document.getElementById("petName").value.trim()) { alert("請填寫寵物名稱"); return; }
-  if (!document.getElementById("petKind").value) { alert("請選擇寵物物種"); return; }
+function toPage3(){
+  if(!document.getElementById("petName").value.trim()){alert("請填寫寵物名稱");return;}
+  if(!document.getElementById("petKind").value){alert("請選擇寵物物種");return;}
   loadDoctors();
-  // Set default datetime to tomorrow 10am
-  if (!document.getElementById("bookingTime").value) {
-    const d = new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0);
-    document.getElementById("bookingTime").value = d.toISOString().slice(0,16);
-  }
+  if(!document.getElementById("bookingTime").value){const d=new Date();d.setDate(d.getDate()+1);d.setHours(10,0,0,0);document.getElementById("bookingTime").value=d.toISOString().slice(0,16);}
   goPage(3);
 }
-
-function selGender(val, el) {
-  gender = val;
-  document.querySelectorAll(".gender-btns")[0].querySelectorAll(".gender-btn").forEach(b=>b.classList.remove("sel"));
-  el.classList.add("sel");
+function selGender(val,el){gender=val;document.getElementById("gG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
+function selNeuter(val,el){neuter=val;document.getElementById("nG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
+function toggleCheck(item,id){
+  const cb=document.getElementById(id);cb.checked=!cb.checked;item.classList.toggle("checked",cb.checked);
+  const any=["c_drug","c_blood","c_image","c_other"].some(i=>document.getElementById(i).checked);
+  document.getElementById("consentBox").classList.toggle("show",any);
+  if(!any){emailConsent=null;document.getElementById("consentYes").classList.remove("sel");document.getElementById("consentNo").classList.remove("sel");}
 }
-
-function selNeuter(val, el) {
-  neuter = val;
-  document.querySelectorAll(".gender-btns")[1].querySelectorAll(".gender-btn").forEach(b=>b.classList.remove("sel"));
-  el.classList.add("sel");
+function setConsent(val){emailConsent=val;document.getElementById("consentYes").classList.toggle("sel",val===true);document.getElementById("consentNo").classList.toggle("sel",val===false);}
+async function loadDoctors(){
+  try{const d=await apiGet("/api/open/bookings/doctorList");const sel=document.getElementById("doctorSelect");sel.innerHTML='<option value="">請選擇醫師</option>';(d.list||[]).forEach(doc=>{const o=document.createElement("option");o.value=doc.id;o.textContent=doc.name+(doc.role?"（"+doc.role+"）":"");sel.appendChild(o);});}
+  catch(e){document.getElementById("doctorSelect").innerHTML='<option value="">無法載入，請重試</option>';}
 }
-
-function toggleCheck(item, id) {
-  const cb = document.getElementById(id);
-  cb.checked = !cb.checked;
-  item.classList.toggle("checked", cb.checked);
-  const anyChecked = ["c_drug","c_blood","c_image","c_other"].some(i=>document.getElementById(i).checked);
-  const box = document.getElementById("consentBox");
-  box.classList.toggle("show", anyChecked);
-  if (!anyChecked) { emailConsent = null; document.getElementById("consentYes").classList.remove("sel"); document.getElementById("consentNo").classList.remove("sel"); }
+async function loadKinds(){
+  try{const d=await apiGet("/api/open/bookings/petKind");kindData=d.kindList||[];const sel=document.getElementById("petKind");sel.innerHTML='<option value="">選擇物種</option>';kindData.forEach(k=>{const o=document.createElement("option");o.value=k._id;o.textContent=k.nametc+" ("+k.name+")";sel.appendChild(o);});}catch(e){}
 }
-
-function setConsent(val) {
-  emailConsent = val;
-  document.getElementById("consentYes").classList.toggle("sel", val===true);
-  document.getElementById("consentNo").classList.toggle("sel", val===false);
+function updateBreeds(){
+  const kindID=document.getElementById("petKind").value;const sel=document.getElementById("petBreed");sel.innerHTML='<option value="">選擇品種</option>';
+  const found=kindData.find(k=>k._id===kindID);if(found)found.breed.forEach(b=>{const o=document.createElement("option");o.value=b._id;o.textContent=b.nametc+" ("+b.name+")";sel.appendChild(o);});
 }
-
-async function loadDoctors() {
-  try {
-    const d = await apiGet("/api/open/bookings/doctorList");
-    const sel = document.getElementById("doctorSelect");
-    sel.innerHTML = '<option value="">請選擇醫師</option>';
-    (d.list||[]).forEach(doc => {
-      const o = document.createElement("option");
-      o.value = doc.id;
-      o.textContent = doc.name + (doc.role ? "（"+doc.role+"）" : "");
-      sel.appendChild(o);
-    });
-  } catch(e) { document.getElementById("doctorSelect").innerHTML='<option value="">無法載入，請重試</option>'; }
-}
-
-async function loadKinds() {
-  try {
-    const d = await apiGet("/api/open/bookings/petKind");
-    kindData = d.kindList || [];
-    const sel = document.getElementById("petKind");
-    sel.innerHTML = '<option value="">選擇物種</option>';
-    kindData.forEach(k => {
-      const o = document.createElement("option");
-      o.value = k._id; o.textContent = k.nametc + " (" + k.name + ")";
-      sel.appendChild(o);
-    });
-  } catch(e) {}
-}
-
-function updateBreeds() {
-  const kindID = document.getElementById("petKind").value;
-  const sel = document.getElementById("petBreed");
-  sel.innerHTML = '<option value="">選擇品種</option>';
-  const found = kindData.find(k=>k._id===kindID);
-  if (found) found.breed.forEach(b => {
-    const o = document.createElement("option");
-    o.value = b._id; o.textContent = b.nametc + " (" + b.name + ")";
-    sel.appendChild(o);
-  });
-}
-
-function buildComment() {
-  const labels = {c_drug:"先前用藥紀錄", c_blood:"血液檢查報告", c_image:"影像檢查報告", c_other:"其他診療記錄"};
-  const checked = Object.entries(labels).filter(([id])=>document.getElementById(id).checked).map(([,l])=>l);
-  if (!checked.length) return "";
-  let note = "【先前就診紀錄】" + checked.join("、");
-  if (emailConsent===true) note += " ｜ 已同意 email 傳送至 "+EMAIL_TARGET;
-  else if (emailConsent===false) note += " ｜ 暫不寄送";
+function buildComment(){
+  const labels={c_drug:"先前用藥紀錄",c_blood:"血液檢查報告",c_image:"影像檢查報告",c_other:"其他診療記錄"};
+  const checked=Object.entries(labels).filter(([id])=>document.getElementById(id).checked).map(([,l])=>l);
+  if(!checked.length)return"";
+  let note="【先前就診紀錄】"+checked.join("、");
+  if(emailConsent===true)note+=" ｜ 已同意 email 傳送至 "+EMAIL_TARGET;
+  else if(emailConsent===false)note+=" ｜ 暫不寄送";
   return note;
 }
-
-async function submitAll() {
-  const name = document.getElementById("ownerName").value.trim();
-  const phone = document.getElementById("ownerPhone").value.trim();
-  const petName = document.getElementById("petName").value.trim();
-  const doctorID = document.getElementById("doctorSelect").value;
-  const bookingTime = document.getElementById("bookingTime").value;
-  if (!doctorID) { alert("請選擇看診醫師"); return; }
-  if (!bookingTime) { alert("請選擇預約時間"); return; }
-
-  const btn = document.getElementById("submitBtn");
-  btn.disabled = true;
+async function submitAll(){
+  const name=document.getElementById("ownerName").value.trim();
+  const phone=document.getElementById("ownerPhone").value.trim();
+  const petName=document.getElementById("petName").value.trim();
+  const doctorID=document.getElementById("doctorSelect").value;
+  const bookingTime=document.getElementById("bookingTime").value;
+  if(!doctorID){alert("請選擇看診醫師");return;}
+  if(!bookingTime){alert("請選擇預約時間");return;}
+  const btn=document.getElementById("submitBtn");btn.disabled=true;
   showStatus("submitStatus","正在建立飼主資料...","loading");
-
-  try {
-    // 1. Search or create user
-    let userID = null;
-    try {
-      const s = await apiPost("/api/open/bookings/userSearch",{phone});
-      if (s && Array.isArray(s) && s[0]) userID = s[0].id;
-    } catch(e) {}
-    if (!userID) {
-      const u = await apiPost("/api/open/bookings/user",{
-        name, phone,
-        address: document.getElementById("ownerAddress").value.trim(),
-        info: [document.getElementById("ownerInfo").value.trim(), document.getElementById("ownerEmail").value.trim() ? "Email:"+document.getElementById("ownerEmail").value.trim() : ""].filter(Boolean).join(" | ")
-      });
-      if (u.error) throw new Error(u.error.message);
-      userID = u.id;
+  try{
+    let userID=null;
+    try{const s=await apiPost("/api/open/bookings/userSearch",{phone});if(s&&Array.isArray(s)&&s[0])userID=s[0].id;}catch(e){}
+    if(!userID){
+      const u=await apiPost("/api/open/bookings/user",{name,phone,address:document.getElementById("ownerAddress").value.trim(),info:[document.getElementById("ownerInfo").value.trim(),document.getElementById("ownerEmail").value.trim()?"Email:"+document.getElementById("ownerEmail").value.trim():""].filter(Boolean).join(" | ")});
+      if(u.error)throw new Error(u.error.message);userID=u.id;
     }
-    createdUserID = userID;
-
-    // 2. Create pet
+    createdUserID=userID;
     showStatus("submitStatus","新增寵物資料中...","loading");
-    const pb = { userID, name: petName };
-    if (document.getElementById("petKind").value) pb.kindID = document.getElementById("petKind").value;
-    if (document.getElementById("petBreed").value) pb.breedID = document.getElementById("petBreed").value;
-    if (gender) pb.gender = gender;
-    if (document.getElementById("petBirth").value) pb.birth = document.getElementById("petBirth").value;
-    const pr = await apiPost("/api/open/bookings/pet", pb);
-    if (pr.error) throw new Error(pr.error.message);
-    createdPetID = pr.petID;
-
-    // 3. Create booking
+    const pb={userID,name:petName};
+    if(document.getElementById("petKind").value)pb.kindID=document.getElementById("petKind").value;
+    if(document.getElementById("petBreed").value)pb.breedID=document.getElementById("petBreed").value;
+    if(gender)pb.gender=gender;
+    if(document.getElementById("petBirth").value)pb.birth=document.getElementById("petBirth").value;
+    const pr=await apiPost("/api/open/bookings/pet",pb);if(pr.error)throw new Error(pr.error.message);createdPetID=pr.petID;
     showStatus("submitStatus","建立預約中...","loading");
-    const dt = Math.floor(new Date(bookingTime).getTime()/1000);
-    const br = await apiPost("/api/open/bookings/booking",{
-      doctorID, userID, petID: createdPetID,
-      division: document.getElementById("divisionSelect").value,
-      bookingDateTime: dt,
-      symptom: document.getElementById("symptom").value.trim(),
-      comment: [buildComment(), neuter?"結紮:"+neuter:""].filter(Boolean).join(" | ")
-    });
-    if (br.error) throw new Error(br.error.message);
-    createdBookingID = br.id;
-
-    // 4. Sync Google Sheet
-    if (SHEET_URL) {
-      try {
-        const payload = {
-          action:      "new_booking",
-          name,
-          phone,
-          email:       document.getElementById("ownerEmail").value.trim(),
-          address:     document.getElementById("ownerAddress").value.trim(),
-          petName,
-          species:     document.getElementById("petKind").options[document.getElementById("petKind").selectedIndex]?.text || "",
-          breed:       document.getElementById("petBreed").options[document.getElementById("petBreed").selectedIndex]?.text || "",
-          gender:      gender,
-          birth:       document.getElementById("petBirth").value,
-          neuter:      neuter,
-          division:    document.getElementById("divisionSelect").value,
-          bookingTime,
-          symptom:     document.getElementById("symptom").value.trim(),
-          comment:     buildComment(),
-          userID,
-          petID:       createdPetID,
-          bookingID:   createdBookingID,
-          timestamp:   new Date().toISOString()
-        };
-        const getURL = SHEET_URL + "?data=" + encodeURIComponent(JSON.stringify(payload));
-        await fetch(getURL, { method:"GET", mode:"no-cors" });
-      } catch(e) {}
+    const dt=Math.floor(new Date(bookingTime).getTime()/1000);
+    const br=await apiPost("/api/open/bookings/booking",{doctorID,userID,petID:createdPetID,division:document.getElementById("divisionSelect").value,bookingDateTime:dt,symptom:document.getElementById("symptom").value.trim(),comment:[buildComment(),neuter?"結紮:"+neuter:""].filter(Boolean).join(" | ")});
+    if(br.error)throw new Error(br.error.message);createdBookingID=br.id;
+    if(SHEET_URL){
+      try{
+        const payload={action:"new_booking",name,phone,email:document.getElementById("ownerEmail").value.trim(),address:document.getElementById("ownerAddress").value.trim(),petName,species:document.getElementById("petKind").options[document.getElementById("petKind").selectedIndex]?.text||"",breed:document.getElementById("petBreed").options[document.getElementById("petBreed").selectedIndex]?.text||"",gender,birth:document.getElementById("petBirth").value,neuter,division:document.getElementById("divisionSelect").value,bookingTime,symptom:document.getElementById("symptom").value.trim(),comment:buildComment(),userID,petID:createdPetID,bookingID:createdBookingID,timestamp:new Date().toISOString()};
+        await fetch(SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload)),{method:"GET",mode:"no-cors"});
+      }catch(e){}
     }
-
-    document.getElementById("res-booking").textContent = createdBookingID||"—";
-    document.getElementById("res-pet").textContent = createdPetID||"—";
-    document.getElementById("res-user").textContent = createdUserID||"—";
+    document.getElementById("res-booking").textContent=createdBookingID||"—";
+    document.getElementById("res-pet").textContent=createdPetID||"—";
+    document.getElementById("res-user").textContent=createdUserID||"—";
     goPage(4);
-
-  } catch(e) {
-    btn.disabled = false;
-    showStatus("submitStatus","錯誤："+e.message,"error");
-  }
+  }catch(e){btn.disabled=false;showStatus("submitStatus","錯誤："+e.message,"error");}
 }
-
-function showMedID() {
-  document.getElementById("medIDSection").style.display = "block";
-  document.getElementById("customMedID").focus();
-}
-
-async function saveMedID() {
-  const medID = document.getElementById("customMedID").value.trim();
-  if (!medID) { showStatus("medIDStatus","請輸入病歷號碼","error"); return; }
+function showMedID(){document.getElementById("medIDSection").style.display="block";document.getElementById("customMedID").focus();}
+async function saveMedID(){
+  const medID=document.getElementById("customMedID").value.trim();
+  if(!medID){showStatus("medIDStatus","請輸入病歷號碼","error");return;}
   showStatus("medIDStatus","儲存中...","loading");
-  let ok = true;
-
-  // 1. 同步至 Google 試算表（依 bookingID 找到該列，寫入病歷號並排序）
-  if (SHEET_URL) {
-    try {
-      const payload = { action:"set_med_id", bookingID:createdBookingID, medID, timestamp:new Date().toISOString() };
-      const getURL = SHEET_URL + "?data=" + encodeURIComponent(JSON.stringify(payload));
-      await fetch(getURL, { method:"GET", mode:"no-cors" });
-    } catch(e) { ok = false; }
-  }
-
-  // 2. 同步至 NxVet：把病歷號碼寫入該筆 booking 的 comment 欄位
-  // NxVet 目前沒有直接修改病歷號的 API，改為在備注欄記錄
-  try {
-    const petID = createdPetID;
-    const userID = createdUserID;
-    if (petID && userID) {
-      // 用修改寵物 API 把病歷號存入（目前 NxVet 無病歷號欄位，記錄於備注）
-      // 實際上 NxVet 病歷號需在 NxVet 系統內手動設定
-    }
-  } catch(e) {}
-
-  showStatus("medIDStatus", ok ? "✅ 病歷號碼 "+medID+" 已儲存並同步 Google 表單" : "⚠️ 已儲存，但 Google 表單同步失敗，請手動確認", ok ? "success" : "error");
+  let ok=true;
+  if(SHEET_URL){try{const payload={action:"set_med_id",bookingID:createdBookingID,medID,timestamp:new Date().toISOString()};await fetch(SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload)),{method:"GET",mode:"no-cors"});}catch(e){ok=false;}}
+  showStatus("medIDStatus",ok?"✅ 病歷號碼 "+medID+" 已儲存並同步 Google 試算表":"⚠️ 已儲存，但 Google 試算表同步失敗",ok?"success":"error");
 }
-
-function resetAll() {
-  createdUserID=createdPetID=createdBookingID=null;
-  gender=""; neuter=""; emailConsent=null;
+function resetAll(){
+  createdUserID=createdPetID=createdBookingID=null;gender="";neuter="";emailConsent=null;
   document.querySelectorAll("input:not([type=checkbox])").forEach(el=>el.value="");
   document.querySelectorAll("textarea").forEach(el=>el.value="");
   document.querySelectorAll(".check-item").forEach(el=>el.classList.remove("checked"));
   document.querySelectorAll("input[type=checkbox]").forEach(el=>el.checked=false);
-  document.querySelectorAll(".gender-btn,.consent-btn").forEach(el=>el.classList.remove("sel"));
+  document.querySelectorAll(".tb,.cbtn").forEach(el=>el.classList.remove("sel"));
   document.getElementById("consentBox").classList.remove("show");
   document.getElementById("submitBtn").disabled=false;
   document.getElementById("medIDSection").style.display="none";
   goPage(1);
 }
-
-// Init
 loadKinds();
 </script>
 </body>
