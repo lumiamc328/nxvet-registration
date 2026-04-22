@@ -209,7 +209,58 @@ function selGender(val,el){gender=val;document.getElementById("gG").querySelecto
 function selNeuter(val,el){neuter=val;document.getElementById("nG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
 function toggleCheck(item,id){const cb=document.getElementById(id);cb.checked=!cb.checked;item.classList.toggle("checked",cb.checked);const any=["c_drug","c_blood","c_image","c_other"].some(i=>document.getElementById(i).checked);document.getElementById("consentBox").classList.toggle("show",any);if(!any){emailConsent=null;document.getElementById("consentYes").classList.remove("sel");document.getElementById("consentNo").classList.remove("sel");}}
 function setConsent(val){emailConsent=val;document.getElementById("consentYes").classList.toggle("sel",val===true);document.getElementById("consentNo").classList.toggle("sel",val===false);}
-async function loadDoctors(){try{const d=await apiGet("/api/open/bookings/doctorList");const sel=document.getElementById("doctorSelect");sel.innerHTML='<option value="">請選擇醫師</option>';(d.list||[]).forEach(doc=>{const o=document.createElement("option");o.value=doc.id;o.textContent=doc.name+(doc.role?"（"+doc.role+"）":"");sel.appendChild(o);});}catch(e){document.getElementById("doctorSelect").innerHTML='<option value="">無法載入，請重試</option>';}}
+async function loadDoctors(){
+  const sel=document.getElementById("doctorSelect");
+  sel.innerHTML='<option value="">載入醫師中...</option>';
+  try{
+    // 同時呼叫兩個 API：doctorList（有排班）+ doctorSchedule（全部）
+    const [r1, r2] = await Promise.allSettled([
+      apiGet("/api/open/bookings/doctorList"),
+      apiGet("/api/open/bookings/doctorSchedule")
+    ]);
+
+    const map = new Map(); // 用 Map 去重，key = doctor id
+
+    // 從 doctorList 取得有排班醫師
+    if(r1.status==="fulfilled" && r1.value.list){
+      r1.value.list.forEach(doc=>{
+        if(doc.id) map.set(doc.id, { id:doc.id, name:doc.name, role:doc.role||"", hasSched:true });
+      });
+    }
+
+    // 從 doctorSchedule 補上其他醫師
+    if(r2.status==="fulfilled"){
+      const arr = Array.isArray(r2.value) ? r2.value : [r2.value];
+      arr.forEach(doc=>{
+        if(doc.id && !map.has(doc.id)){
+          map.set(doc.id, { id:doc.id, name:doc.name, role:"", hasSched:false });
+        }
+      });
+    }
+
+    const doctors = Array.from(map.values());
+
+    sel.innerHTML='<option value="">請選擇醫師</option>';
+
+    if(doctors.length === 0){
+      sel.innerHTML='<option value="">無法載入，請重試</option>';
+      return;
+    }
+
+    // 有排班的醫師排前面
+    doctors.sort((a,b)=>(b.hasSched?1:0)-(a.hasSched?1:0));
+
+    doctors.forEach(doc=>{
+      const o=document.createElement("option");
+      o.value=doc.id;
+      o.textContent=doc.name+(doc.role?"（"+doc.role+"）":"");
+      sel.appendChild(o);
+    });
+
+  }catch(e){
+    sel.innerHTML='<option value="">無法載入，請重試</option>';
+  }
+}
 async function loadKinds(){try{const d=await apiGet("/api/open/bookings/petKind");kindData=d.kindList||[];const sel=document.getElementById("petKind");sel.innerHTML='<option value="">選擇物種</option>';kindData.forEach(k=>{const o=document.createElement("option");o.value=k._id;o.textContent=k.nametc+" ("+k.name+")";sel.appendChild(o);});}catch(e){}}
 function updateBreeds(){const kindID=document.getElementById("petKind").value;const sel=document.getElementById("petBreed");sel.innerHTML='<option value="">選擇品種</option>';const found=kindData.find(k=>k._id===kindID);if(found)found.breed.forEach(b=>{const o=document.createElement("option");o.value=b._id;o.textContent=b.nametc+" ("+b.name+")";sel.appendChild(o);});}
 function buildComment(){const labels={c_drug:"先前用藥紀錄",c_blood:"血液檢查報告",c_image:"影像檢查報告",c_other:"其他診療記錄"};const checked=Object.entries(labels).filter(([id])=>document.getElementById(id).checked).map(([,l])=>l);if(!checked.length)return"";let note="【先前就診紀錄】"+checked.join("、");if(emailConsent===true)note+=" ｜ 已同意 email 傳送至 "+EMAIL_TARGET;else if(emailConsent===false)note+=" ｜ 暫不寄送";return note;}
