@@ -51,6 +51,13 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
 .tb:hover{border-color:var(--lumi);color:var(--text);}
 .tb.sel{background:var(--lumi);border-color:var(--lumi-d);color:white;font-weight:500;}
 .check-list{display:flex;flex-direction:column;gap:7px;}
+.medrec-box{background:#EEF9FB;border:1px solid var(--lumi);border-radius:var(--r);padding:14px;margin-top:10px;display:none;}
+.medrec-box.show{display:block;}
+.medrec-title{font-weight:500;color:var(--lumi-d);margin-bottom:4px;font-size:13px;}
+.upload-area{border:1.5px dashed var(--lumi);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;background:var(--white);transition:all .15s;}
+.upload-area:hover{background:var(--lumi-pale);border-color:var(--lumi-d);}
+.file-chip{display:inline-flex;align-items:center;gap:6px;background:var(--lumi-pale);border:1px solid var(--lumi-l);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--lumi-d);margin:3px;}
+.file-chip button{background:none;border:none;cursor:pointer;color:var(--text-h);font-size:14px;padding:0;line-height:1;}
 .check-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;background:var(--lumi-pale);transition:all .15s;}
 .check-item:hover{border-color:var(--lumi);background:var(--lumi-l);}
 .check-item.checked{background:var(--lumi-l);border-color:var(--lumi);}
@@ -166,17 +173,33 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
   </div>
   <div class="card">
     <div class="cl">先前就診紀錄</div>
-    <div style="font-size:13px;color:var(--text-s);margin-bottom:12px;">如有以下先前就診資料，請勾選：</div>
+    <div style="font-size:13px;color:var(--text-s);margin-bottom:12px;">如有先前就診資料，請勾選後上傳或填入連結：</div>
     <div class="check-list">
-      <div class="check-item" onclick="toggleCheck(this,'c_drug')"><input type="checkbox" id="c_drug"><label for="c_drug">先前用藥紀錄</label></div>
-      <div class="check-item" onclick="toggleCheck(this,'c_blood')"><input type="checkbox" id="c_blood"><label for="c_blood">血液檢查報告</label></div>
-      <div class="check-item" onclick="toggleCheck(this,'c_image')"><input type="checkbox" id="c_image"><label for="c_image">影像檢查報告（X光、超音波等）</label></div>
-      <div class="check-item" onclick="toggleCheck(this,'c_other')"><input type="checkbox" id="c_other"><label for="c_other">其他診療記錄</label></div>
+      <div class="check-item" onclick="toggleMedRec(this,'c_drug')"><input type="checkbox" id="c_drug"><label for="c_drug">先前用藥紀錄</label></div>
+      <div class="check-item" onclick="toggleMedRec(this,'c_blood')"><input type="checkbox" id="c_blood"><label for="c_blood">血液檢查報告</label></div>
+      <div class="check-item" onclick="toggleMedRec(this,'c_image')"><input type="checkbox" id="c_image"><label for="c_image">影像檢查報告（X光、超音波等）</label></div>
+      <div class="check-item" onclick="toggleMedRec(this,'c_other')"><input type="checkbox" id="c_other"><label for="c_other">其他診療記錄</label></div>
     </div>
-    <div class="cbox" id="consentBox">
-      <div class="cbox-t">資料傳送同意確認</div>
-      <div class="cbox-d">是否同意將您的就診資料以電子郵件附件方式寄送至院方信箱 lumiamc328@gmail.com，以便醫師事先了解病史？</div>
-      <div class="cbtns"><div class="cbtn" id="consentYes" onclick="setConsent(true)">同意寄送</div><div class="cbtn" id="consentNo" onclick="setConsent(false)">暫不寄送</div></div>
+    <div class="medrec-box" id="medRecBox">
+      <div class="medrec-title">提供就診資料方式（擇一或兩者皆可）</div>
+      <div class="field" style="margin-top:10px;">
+        <label>上傳照片或文件</label>
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('medFiles').click()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:6px;color:var(--lumi-d)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          <div style="font-size:13px;color:var(--lumi-d);font-weight:500">點擊選擇檔案</div>
+          <div style="font-size:11px;color:var(--text-h);margin-top:2px">支援 JPG、PNG、PDF（最多5個檔案）</div>
+        </div>
+        <input type="file" id="medFiles" multiple accept="image/*,.pdf" style="display:none" onchange="onFilesSelected()">
+        <div id="fileList" style="margin-top:8px;"></div>
+      </div>
+      <div class="field">
+        <label>或填入資料連結（Google Drive、雲端相簿等）</label>
+        <input type="url" id="medUrl" placeholder="例：https://drive.google.com/...">
+      </div>
+      <div class="field">
+        <label>補充說明</label>
+        <textarea id="medNote" placeholder="例：3個月前在XX動物醫院就診，有心臟病史..." style="min-height:56px;"></textarea>
+      </div>
     </div>
   </div>
   <div class="btn-row">
@@ -212,10 +235,9 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
 <script>
 const SERVER="https://s7.nxvet.io";
 const TOKEN="cabeCqstBn7den0SJvRHjUaptOrQ2kU7ZYfBVf1iGbI1yBVR7J2Q74tnk4gN6wdd";
-const EMAIL_TARGET="lumiamc328@gmail.com";
 const SHEET_URL="https://script.google.com/macros/s/AKfycbwz7UfULvfJcoq8BdfKX4Ev8N4fhuzjweE1ZRG-SDG2sJ-VfHq45ePjSGRku9g_SR24YQ/exec";
 
-let gender="",neuter="",emailConsent=null,kindData=[];
+let gender="",neuter="",kindData=[];
 let createdUserID=null,createdPetID=null;
 let currentPage=1;
 let phoneTimer=null;
@@ -279,14 +301,21 @@ async function lookupByPhone(phone){
       const data=await res.json();
       if(data.result){
         const rec=data.result;
-        foundInSheet = true;
-        badge.textContent="✅ 找到舊有飼主："+rec["飼主姓名"]+" — 歡迎再次光臨";
-        badge.style.background="var(--lumi-l)";
-        // 帶入所有有資料的欄位
-        if(rec["飼主姓名"]) document.getElementById("ownerName").value=rec["飼主姓名"];
-        if(rec["Email"])   document.getElementById("ownerEmail").value=rec["Email"];
-        if(rec["地址"])    document.getElementById("ownerAddress").value=rec["地址"];
-        if(rec["備注"])    document.getElementById("ownerInfo").value=rec["備注"];
+        // 試算表欄位：飼主姓名(index2)、電話(index3)、Email(index4)、地址(index5)、備注(index16)
+        const name = rec["飼主姓名"] || rec["name"] || "";
+        const email = rec["Email"] || rec["email"] || "";
+        const addr = rec["地址"] || rec["address"] || "";
+        const note = rec["備注"] || "";
+        if(!name) { /* 找到記錄但姓名空白，繼續讓 NxVet 補 */ }
+        else {
+          foundInSheet = true;
+          badge.textContent="✅ 找到舊有飼主："+name+" — 歡迎再次光臨";
+          badge.style.background="var(--lumi-l)";
+          document.getElementById("ownerName").value = name;
+          if(email) document.getElementById("ownerEmail").value = email;
+          if(addr)  document.getElementById("ownerAddress").value = addr;
+          if(note)  document.getElementById("ownerInfo").value = note;
+        }
       }
     }catch(e2){}
 
@@ -327,13 +356,30 @@ function toPage3(){
 
 function selGender(val,el){gender=val;document.getElementById("gG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
 function selNeuter(val,el){neuter=val;document.getElementById("nG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
-function toggleCheck(item,id){
+function toggleMedRec(item,id){
   const cb=document.getElementById(id);cb.checked=!cb.checked;item.classList.toggle("checked",cb.checked);
   const any=["c_drug","c_blood","c_image","c_other"].some(i=>document.getElementById(i).checked);
-  document.getElementById("consentBox").classList.toggle("show",any);
-  if(!any){emailConsent=null;document.getElementById("consentYes").classList.remove("sel");document.getElementById("consentNo").classList.remove("sel");}
+  document.getElementById("medRecBox").classList.toggle("show",any);
 }
-function setConsent(val){emailConsent=val;document.getElementById("consentYes").classList.toggle("sel",val===true);document.getElementById("consentNo").classList.toggle("sel",val===false);}
+
+let selectedFiles=[];
+function onFilesSelected(){
+  const input=document.getElementById("medFiles");
+  const newFiles=Array.from(input.files);
+  selectedFiles=[...selectedFiles,...newFiles].slice(0,5);
+  renderFileList();
+  input.value="";
+}
+function removeFile(i){
+  selectedFiles.splice(i,1);
+  renderFileList();
+}
+function renderFileList(){
+  const el=document.getElementById("fileList");
+  el.innerHTML=selectedFiles.map((f,i)=>
+    `<span class="file-chip">${f.name}<button onclick="removeFile(${i})" type="button">×</button></span>`
+  ).join("");
+}
 
 async function loadKinds(){
   try{
@@ -399,8 +445,12 @@ function buildComment(){
   const checked=Object.entries(labels).filter(([id])=>document.getElementById(id).checked).map(([,l])=>l);
   if(!checked.length)return"";
   let note="【先前就診紀錄】"+checked.join("、");
-  if(emailConsent===true)note+=" ｜ 已同意 email 傳送至 "+EMAIL_TARGET;
-  else if(emailConsent===false)note+=" ｜ 暫不寄送";
+  const url=document.getElementById("medUrl")?.value.trim();
+  const memo=document.getElementById("medNote")?.value.trim();
+  const fileNames=selectedFiles.map(f=>f.name).join("、");
+  if(url) note+=" ｜ 資料連結："+url;
+  if(fileNames) note+=" ｜ 上傳檔案："+fileNames;
+  if(memo) note+=" ｜ 說明："+memo;
   return note;
 }
 
@@ -481,7 +531,11 @@ function resetAll(){
   document.querySelectorAll(".check-item").forEach(el=>el.classList.remove("checked"));
   document.querySelectorAll("input[type=checkbox]").forEach(el=>el.checked=false);
   document.querySelectorAll(".tb,.cbtn").forEach(el=>el.classList.remove("sel"));
-  document.getElementById("consentBox").classList.remove("show");
+  document.getElementById("medRecBox").classList.remove("show");
+  selectedFiles=[];
+  renderFileList();
+  if(document.getElementById("medUrl")) document.getElementById("medUrl").value="";
+  if(document.getElementById("medNote")) document.getElementById("medNote").value="";
   document.getElementById("submitBtn").disabled=false;
   document.getElementById("autofillBadge").className="autofill-badge";
   _renderPage(1);
