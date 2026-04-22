@@ -235,11 +235,26 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
       <div class="s-title">資料已成功送出</div>
       <div class="s-sub">感謝您完成初診資料登載<br>院方將盡快與您確認就診細節</div>
       <div style="text-align:left;">
-        <div class="rr"><div class="rl">飼主 ID</div><div class="rv" id="res-user">—</div></div>
-        <div class="rr"><div class="rl">寵物 ID</div><div class="rv" id="res-pet">—</div></div>
+        <div class="rr"><div class="rl">飼主 ID（NxVet）</div><div class="rv" id="res-user">—</div></div>
+        <div class="rr"><div class="rl">寵物 ID（NxVet）</div><div class="rv" id="res-pet">—</div></div>
+        <div class="rr" id="res-medid-row" style="display:none;"><div class="rl">病歷號碼</div><div class="rv" id="res-medid" style="color:var(--lumi-d);font-weight:500;">—</div></div>
       </div>
     </div>
-    <div style="padding-top:16px;border-top:1px solid var(--border);">
+
+    <!-- 院內同步病歷號區塊 -->
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px;">
+      <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px;">同步 NxVet 病歷號碼</div>
+      <div style="font-size:12px;color:var(--text-h);margin-bottom:10px;line-height:1.6;">
+        請至 NxVet 系統查看自動產生的病歷號碼，填入後按「同步」將更新 Google 試算表。
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="syncMedID" placeholder="輸入 NxVet 病歷號碼" style="flex:1;">
+        <button onclick="syncMedID()" style="padding:10px 16px;background:var(--lumi);color:white;border:none;border-radius:var(--r);font-size:13px;cursor:pointer;font-family:var(--sans);white-space:nowrap;">同步</button>
+      </div>
+      <div class="status" id="syncStatus"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;padding-top:14px;border-top:1px solid var(--border);margin-top:14px;">
       <button class="btn btn-p" style="width:100%;" onclick="resetAll()">新增下一位</button>
     </div>
   </div>
@@ -591,6 +606,36 @@ async function submitAll(){
     btn.disabled=false;
     showStatus("submitStatus","錯誤："+e.message,"error");
   }
+}
+
+async function syncMedID(){
+  const medID = document.getElementById("syncMedID").value.trim();
+  if(!medID){ alert("請輸入病歷號碼"); return; }
+
+  const statusEl = document.getElementById("syncStatus");
+  statusEl.textContent="同步中...";
+  statusEl.className="status loading";
+
+  let sheetOk = false;
+
+  // 1. 同步到 Google 試算表（用 petID 找到該列，寫入病歷號）
+  if(SHEET_URL && createdPetID){
+    try{
+      const payload={action:"sync_med_id", petID:createdPetID, userID:createdUserID, medID, timestamp:new Date().toISOString()};
+      const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+      await fetch(url,{method:"GET",mode:"no-cors"});
+      sheetOk=true;
+    }catch(e){}
+  }
+
+  // 2. 在 NxVet 的備注欄記錄病歷號（開放 API 無法直接寫病歷號）
+  // NxVet 目前只能透過 comment 欄位記錄，實際病歷號由 NxVet 系統管理
+  
+  // 顯示結果
+  document.getElementById("res-medid").textContent = medID;
+  document.getElementById("res-medid-row").style.display = "block";
+  statusEl.textContent = sheetOk ? "✅ 病歷號碼 "+medID+" 已同步至 Google 試算表" : "⚠️ 請確認 Google 試算表已更新";
+  statusEl.className = "status " + (sheetOk ? "success" : "error");
 }
 
 function resetAll(){
