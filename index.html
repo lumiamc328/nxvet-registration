@@ -301,20 +301,35 @@ async function lookupByPhone(phone){
       const data=await res.json();
       if(data.result){
         const rec=data.result;
-        // 試算表欄位：飼主姓名(index2)、電話(index3)、Email(index4)、地址(index5)、備注(index16)
-        const name = rec["飼主姓名"] || rec["name"] || "";
-        const email = rec["Email"] || rec["email"] || "";
-        const addr = rec["地址"] || rec["address"] || "";
-        const note = rec["備注"] || "";
-        if(!name) { /* 找到記錄但姓名空白，繼續讓 NxVet 補 */ }
-        else {
+        // 取得所有欄位（欄位名稱來自試算表標題列）
+        const name  = rec["飼主姓名"] || "";
+        const email = rec["Email"]    || "";
+        const addr  = rec["地址"]     || "";
+        const note  = rec["備注"]     || "";
+
+        if(name){
           foundInSheet = true;
           badge.textContent="✅ 找到舊有飼主："+name+" — 歡迎再次光臨";
           badge.style.background="var(--lumi-l)";
           document.getElementById("ownerName").value = name;
           if(email) document.getElementById("ownerEmail").value = email;
           if(addr)  document.getElementById("ownerAddress").value = addr;
-          if(note)  document.getElementById("ownerInfo").value = note;
+          if(note && !document.getElementById("ownerInfo").value)
+            document.getElementById("ownerInfo").value = note;
+        } else if(rec["_debug_headers"]){
+          // 找到記錄但欄位名稱不符，顯示實際欄位供除錯
+          console.warn("試算表欄位：", rec["_debug_headers"]);
+          console.warn("完整資料：", JSON.stringify(rec));
+          // 嘗試用 index 直接取值
+          const vals = Object.values(rec);
+          if(vals[2]) document.getElementById("ownerName").value = vals[2];    // index2=飼主姓名
+          if(vals[4]) document.getElementById("ownerEmail").value = vals[4];   // index4=Email
+          if(vals[5]) document.getElementById("ownerAddress").value = vals[5]; // index5=地址
+          foundInSheet = !!vals[2];
+          if(foundInSheet){
+            badge.textContent="✅ 找到舊有飼主："+vals[2]+" — 歡迎再次光臨";
+            badge.style.background="var(--lumi-l)";
+          }
         }
       }
     }catch(e2){}
