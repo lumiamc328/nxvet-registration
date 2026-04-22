@@ -270,44 +270,41 @@ function onPhoneInput(){
 async function lookupByPhone(phone){
   const badge = document.getElementById("autofillBadge");
   try{
-    // 先查 NxVet
-    const s = await apiPost("/api/open/bookings/userSearch",{phone});
-    if(s && Array.isArray(s) && s[0]){
-      createdUserID = s[0].id;
-      const uid = s[0].id;
-      badge.textContent = "✅ 找到舊有飼主："+s[0].name+" — 歡迎再次光臨";
-      badge.style.background="var(--lumi-l)";
-      if(s[0].name) document.getElementById("ownerName").value = s[0].name;
-      // 嘗試從 Google 試算表補入地址和 email
-      try{
-        const payload2={action:"lookupPhone",phone};
-        const url2=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload2));
-        const res2=await fetch(url2,{method:"GET"});
-        const data2=await res2.json();
-        if(data2.result){
-          const rec=data2.result;
-          if(rec["Email"] && !document.getElementById("ownerEmail").value)
-            document.getElementById("ownerEmail").value=rec["Email"];
-          if(rec["地址"] && !document.getElementById("ownerAddress").value)
-            document.getElementById("ownerAddress").value=rec["地址"];
+    // 先查 Google 試算表（有完整資料：地址、email）
+    let foundInSheet = false;
+    try{
+      const payload={action:"lookupPhone",phone};
+      const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+      const res=await fetch(url,{method:"GET"});
+      const data=await res.json();
+      if(data.result){
+        const rec=data.result;
+        foundInSheet = true;
+        badge.textContent="✅ 找到舊有飼主："+rec["飼主姓名"]+" — 歡迎再次光臨";
+        badge.style.background="var(--lumi-l)";
+        // 帶入所有有資料的欄位
+        if(rec["飼主姓名"]) document.getElementById("ownerName").value=rec["飼主姓名"];
+        if(rec["Email"])   document.getElementById("ownerEmail").value=rec["Email"];
+        if(rec["地址"])    document.getElementById("ownerAddress").value=rec["地址"];
+        if(rec["備注"])    document.getElementById("ownerInfo").value=rec["備注"];
+      }
+    }catch(e2){}
+
+    // 同時查 NxVet 取得 userID（不管試算表有沒有找到都查）
+    try{
+      const s = await apiPost("/api/open/bookings/userSearch",{phone});
+      if(s && Array.isArray(s) && s[0]){
+        createdUserID = s[0].id;
+        if(!foundInSheet){
+          // 試算表沒找到才用 NxVet 的姓名
+          badge.textContent="✅ 找到舊有飼主："+s[0].name+" — 歡迎再次光臨";
+          badge.style.background="var(--lumi-l)";
+          if(s[0].name) document.getElementById("ownerName").value=s[0].name;
         }
-      }catch(e2){}
-      return;
-    }
-    // 再查 Google 試算表
-    const payload={action:"lookupPhone",phone};
-    const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
-    const res=await fetch(url,{method:"GET"});
-    const data=await res.json();
-    if(data.result){
-      const rec=data.result;
-      badge.textContent="✅ 找到舊有飼主："+rec["飼主姓名"]+" — 歡迎再次光臨";
-      badge.style.background="var(--lumi-l)";
-      if(rec["飼主姓名"]) document.getElementById("ownerName").value=rec["飼主姓名"];
-      if(rec["Email"]) document.getElementById("ownerEmail").value=rec["Email"];
-      if(rec["地址"]) document.getElementById("ownerAddress").value=rec["地址"];
-      createdUserID=null; // 讓後面重新查
-    } else {
+      }
+    }catch(e3){}
+
+    if(!foundInSheet && !createdUserID){
       badge.textContent="新飼主，請填寫以下資料";
       badge.style.background="";
     }
