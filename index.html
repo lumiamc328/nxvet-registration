@@ -137,7 +137,15 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
     <div class="field"><label>寵物名稱 <span class="req">*</span></label><input type="text" id="petName" placeholder="請輸入寵物名稱"></div>
     <div class="row2">
       <div class="field"><label>物種 <span class="req">*</span></label><select id="petKind" onchange="updateBreeds()"><option value="">選擇物種</option></select></div>
-      <div class="field"><label>品種</label><select id="petBreed"><option value="">選擇品種</option></select></div>
+      <div class="field">
+        <label>品種</label>
+        <div style="position:relative;">
+          <input type="text" id="petBreedInput" placeholder="輸入關鍵字搜尋品種" autocomplete="off"
+            oninput="filterBreeds()" onfocus="showBreedList()" onblur="hideBreedList()" style="padding-right:32px;">
+          <div id="breedDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--white);border:1px solid var(--lumi);border-top:none;border-radius:0 0 var(--r) var(--r);max-height:200px;overflow-y:auto;z-index:50;box-shadow:0 4px 12px rgba(5,179,203,0.15);"></div>
+        </div>
+        <input type="hidden" id="petBreedId">
+      </div>
     </div>
     <div class="field"><label>性別</label><div class="tg" id="gG"><div class="tb" onclick="selGender('Male',this)">公</div><div class="tb" onclick="selGender('Female',this)">母</div><div class="tb" onclick="selGender('',this)">不確定</div></div></div>
     <div class="field"><label>生日</label><input type="date" id="petBirth"></div>
@@ -266,10 +274,24 @@ async function lookupByPhone(phone){
     const s = await apiPost("/api/open/bookings/userSearch",{phone});
     if(s && Array.isArray(s) && s[0]){
       createdUserID = s[0].id;
+      const uid = s[0].id;
       badge.textContent = "✅ 找到舊有飼主："+s[0].name+" — 歡迎再次光臨";
       badge.style.background="var(--lumi-l)";
-      // 帶入姓名
       if(s[0].name) document.getElementById("ownerName").value = s[0].name;
+      // 嘗試從 Google 試算表補入地址和 email
+      try{
+        const payload2={action:"lookupPhone",phone};
+        const url2=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload2));
+        const res2=await fetch(url2,{method:"GET"});
+        const data2=await res2.json();
+        if(data2.result){
+          const rec=data2.result;
+          if(rec["Email"] && !document.getElementById("ownerEmail").value)
+            document.getElementById("ownerEmail").value=rec["Email"];
+          if(rec["地址"] && !document.getElementById("ownerAddress").value)
+            document.getElementById("ownerAddress").value=rec["地址"];
+        }
+      }catch(e2){}
       return;
     }
     // 再查 Google 試算表
@@ -325,12 +347,55 @@ async function loadKinds(){
     kindData.forEach(k=>{const o=document.createElement("option");o.value=k._id;o.textContent=k.nametc+" ("+k.name+")";sel.appendChild(o);});
   }catch(e){}
 }
+let currentBreeds = [];
+let breedBlurTimer = null;
+
 function updateBreeds(){
-  const kindID=document.getElementById("petKind").value;
-  const sel=document.getElementById("petBreed");
-  sel.innerHTML='<option value="">選擇品種</option>';
-  const found=kindData.find(k=>k._id===kindID);
-  if(found)found.breed.forEach(b=>{const o=document.createElement("option");o.value=b._id;o.textContent=b.nametc+" ("+b.name+")";sel.appendChild(o);});
+  const kindID = document.getElementById("petKind").value;
+  document.getElementById("petBreedInput").value = "";
+  document.getElementById("petBreedId").value = "";
+  document.getElementById("breedDropdown").style.display = "none";
+  const found = kindData.find(k=>k._id===kindID);
+  currentBreeds = found ? found.breed : [];
+}
+
+function filterBreeds(){
+  const kw = document.getElementById("petBreedInput").value.toLowerCase();
+  const filtered = currentBreeds.filter(b=>
+    b.nametc.toLowerCase().includes(kw) || b.name.toLowerCase().includes(kw)
+  );
+  renderBreedList(filtered);
+}
+
+function showBreedList(){
+  if(currentBreeds.length===0) return;
+  renderBreedList(currentBreeds);
+}
+
+function hideBreedList(){
+  breedBlurTimer = setTimeout(()=>{
+    document.getElementById("breedDropdown").style.display="none";
+  }, 200);
+}
+
+function renderBreedList(breeds){
+  const dd = document.getElementById("breedDropdown");
+  if(breeds.length===0){
+    dd.innerHTML='<div style="padding:10px 12px;font-size:13px;color:var(--text-h)">找不到符合的品種</div>';
+  } else {
+    dd.innerHTML = breeds.map(b=>
+      `<div onclick="selectBreed('${b._id}','${b.nametc}')" style="padding:9px 12px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--border);"
+        onmouseover="this.style.background='var(--lumi-pale)'" onmouseout="this.style.background=''">${b.nametc} <span style="font-size:12px;color:var(--text-h)">${b.name}</span></div>`
+    ).join("");
+  }
+  dd.style.display="block";
+}
+
+function selectBreed(id, name){
+  clearTimeout(breedBlurTimer);
+  document.getElementById("petBreedInput").value = name;
+  document.getElementById("petBreedId").value = id;
+  document.getElementById("breedDropdown").style.display = "none";
 }
 function buildComment(){
   const labels={c_drug:"先前用藥紀錄",c_blood:"血液檢查報告",c_image:"影像檢查報告",c_other:"其他診療記錄"};
@@ -370,7 +435,7 @@ async function submitAll(){
     showStatus("submitStatus","新增寵物資料中...","loading");
     const pb={userID,name:petName};
     if(document.getElementById("petKind").value)pb.kindID=document.getElementById("petKind").value;
-    if(document.getElementById("petBreed").value)pb.breedID=document.getElementById("petBreed").value;
+    if(document.getElementById("petBreedId").value)pb.breedID=document.getElementById("petBreedId").value;
     if(gender)pb.gender=gender;
     if(document.getElementById("petBirth").value)pb.birth=document.getElementById("petBirth").value;
     const pr=await apiPost("/api/open/bookings/pet",pb);
@@ -387,7 +452,7 @@ async function submitAll(){
           address:document.getElementById("ownerAddress").value.trim(),
           petName,
           species:document.getElementById("petKind").options[document.getElementById("petKind").selectedIndex]?.text||"",
-          breed:document.getElementById("petBreed").options[document.getElementById("petBreed").selectedIndex]?.text||"",
+          breed:document.getElementById("petBreedInput").value||"",
           gender,birth:document.getElementById("petBirth").value,neuter,
           symptom:document.getElementById("symptom").value.trim(),
           comment:buildComment(),
@@ -412,6 +477,9 @@ function resetAll(){
   createdUserID=createdPetID=null;
   gender="";neuter="";emailConsent=null;currentPage=1;
   document.querySelectorAll("input:not([type=checkbox])").forEach(el=>el.value="");
+  document.getElementById("petBreedId").value="";
+  document.getElementById("breedDropdown").style.display="none";
+  currentBreeds=[];
   document.querySelectorAll("textarea").forEach(el=>el.value="");
   document.querySelectorAll(".check-item").forEach(el=>el.classList.remove("checked"));
   document.querySelectorAll("input[type=checkbox]").forEach(el=>el.checked=false);
