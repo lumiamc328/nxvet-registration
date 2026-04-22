@@ -3,580 +3,394 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>路米動物醫院 — 院內表單系統</title>
+<title>院内表單系統 — LUMI 路米動物醫院</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-  :root {
-    --bg: #F7F6F2; --surface: #FFFFFF; --border: #E4E2D8;
-    --text: #1A1916; --text-s: #6B6860; --text-h: #9B9890;
-    --accent: #2D6A4F; --accent-l: #E8F3EE; --accent-m: #52B788;
-    --warn: #B5541C; --warn-l: #FDF0E8;
-    --r: 8px; --rl: 12px; --sans: 'Noto Sans TC', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 14px; }
-
-  /* Layout */
-  .layout { display: flex; min-height: 100vh; }
-  .sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); padding: 16px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-  .sidebar-title { padding: 0 16px 12px; font-size: 13px; font-weight: 500; color: var(--text-s); border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-  .nav-item { padding: 9px 16px; font-size: 13px; cursor: pointer; color: var(--text-s); display: flex; align-items: center; gap: 8px; }
-  .nav-item:hover { background: var(--bg); color: var(--text); }
-  .nav-item.active { background: var(--accent-l); color: var(--accent); font-weight: 500; border-right: 2px solid var(--accent); }
-  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-  .main { flex: 1; padding: 24px; max-width: 800px; }
-
-  /* Form cards */
-  .form-page { display: none; }
-  .form-page.active { display: block; }
-  .form-header { margin-bottom: 20px; }
-  .form-title { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
-  .form-sub { font-size: 13px; color: var(--text-s); }
-
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rl); padding: 20px; margin-bottom: 14px; }
-  .card-title { font-size: 12px; font-weight: 500; color: var(--text-s); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-  .field { margin-bottom: 12px; }
-  .field:last-child { margin-bottom: 0; }
-  label { font-size: 12px; color: var(--text-s); display: block; margin-bottom: 4px; }
-  input, select, textarea { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); font-family: var(--sans); }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-m); }
-  textarea { min-height: 60px; resize: vertical; line-height: 1.6; }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-
-  /* Consent text */
-  .consent-text { background: var(--bg); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; font-size: 13px; line-height: 2; color: var(--text-s); margin-bottom: 14px; }
-  .fill-blank { display: inline-block; min-width: 80px; border-bottom: 1px solid var(--text); padding: 0 4px; color: var(--text); font-weight: 500; background: transparent; font-size: 13px; font-family: var(--sans); text-align: center; }
-  .fill-blank:focus { outline: none; border-bottom-color: var(--accent); }
-
-  /* Action buttons */
-  .btn-row { display: flex; gap: 10px; }
-  .btn { padding: 10px 20px; border-radius: var(--r); font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--sans); border: none; }
-  .btn-primary { background: var(--accent); color: white; }
-  .btn-primary:hover { background: #235C3E; }
-  .btn-outline { background: var(--surface); color: var(--text-s); border: 1px solid var(--border) !important; }
-  .btn-outline:hover { background: var(--bg); }
-  .btn-print { background: #185FA5; color: white; }
-  .btn-print:hover { background: #0C447C; }
-
-  .status { font-size: 13px; padding: 8px 12px; border-radius: var(--r); margin-top: 10px; display: none; }
-  .status.ok { background: var(--accent-l); color: var(--accent); display: block; }
-  .status.err { background: var(--warn-l); color: var(--warn); display: block; }
-  .status.loading { background: #E6F1FB; color: #185FA5; display: block; }
-
-  /* Print styles */
-  @media print {
-    .sidebar, .btn-row, .nav-item, .form-header, .status { display: none !important; }
-    .main { padding: 0; max-width: 100%; }
-    .form-page { display: block !important; }
-    .form-page:not(.active) { display: none !important; }
-    .card { border: none; padding: 10px 0; }
-    .consent-text { border: 1px solid #ccc; }
-    body { font-size: 12px; }
-    .print-header { display: block !important; text-align: center; margin-bottom: 20px; }
-    .print-title { font-size: 18px; font-weight: bold; }
-    .print-sub { font-size: 13px; color: #666; margin-top: 4px; }
-  }
-  .print-header { display: none; }
-
-  /* Mobile */
-  @media (max-width: 640px) {
-    .sidebar { display: none; }
-    .main { padding: 14px; }
-    .row2, .row3 { grid-template-columns: 1fr; }
-  }
+:root{
+  --lumi:#05B3CB;--lumi-d:#049DB3;--lumi-l:#C8EEF3;--lumi-pale:#EEF9FB;
+  --white:#FFFFFF;--bg:#F4FAFB;
+  --text:#2C4A50;--text-s:#5A8A90;--text-h:#8ABEC4;
+  --border:rgba(5,179,203,0.18);--border-s:rgba(5,179,203,0.35);
+  --r:6px;--rl:10px;--sans:"Noto Sans TC",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+.header{background:var(--lumi);height:60px;display:flex;align-items:center;padding:0 20px;gap:10px;position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(5,179,203,0.3);}
+.header img{width:40px;height:40px;border-radius:50%;}
+.header-name{color:white;font-size:15px;font-weight:500;}
+.header-sub{color:rgba(255,255,255,.7);font-size:10px;letter-spacing:.06em;text-transform:uppercase;}
+.header-right{margin-left:auto;color:rgba(255,255,255,.8);font-size:11px;}
+.layout{display:flex;min-height:calc(100vh - 60px);}
+.sidebar{width:210px;background:var(--white);border-right:1px solid var(--border);flex-shrink:0;padding:12px 0;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;}
+.sidebar-section{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-h);padding:14px 16px 6px;font-weight:500;}
+.nav-item{padding:9px 16px;font-size:13px;cursor:pointer;color:var(--text-s);display:flex;align-items:center;gap:8px;border-left:3px solid transparent;transition:all .15s;}
+.nav-item:hover{background:var(--lumi-pale);color:var(--text);border-left-color:var(--lumi-l);}
+.nav-item.active{background:var(--lumi-pale);color:var(--lumi-d);border-left-color:var(--lumi);font-weight:500;}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.main{flex:1;padding:24px;max-width:800px;}
+.form-page{display:none;}
+.form-page.active{display:block;}
+.page-title{font-size:18px;font-weight:500;color:var(--text);margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--text-h);margin-bottom:20px;}
+.card{background:var(--white);border:1px solid var(--border);border-top:3px solid var(--lumi);border-radius:var(--rl);padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(5,179,203,0.06);}
+.card-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--lumi-d);font-weight:500;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.field{margin-bottom:12px;}.field:last-child{margin-bottom:0;}
+label{font-size:12px;color:var(--text-s);display:block;margin-bottom:4px;}
+input,select,textarea{width:100%;padding:8px 10px;font-size:14px;border:1px solid var(--border);border-radius:var(--r);background:var(--lumi-pale);color:var(--text);font-family:var(--sans);transition:all .15s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--lumi);background:var(--white);box-shadow:0 0 0 3px rgba(5,179,203,.1);}
+textarea{resize:vertical;min-height:60px;line-height:1.6;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.consent-text{background:var(--lumi-pale);border:1px solid var(--border);border-radius:var(--r);padding:14px;font-size:13px;line-height:2.2;color:var(--text-s);margin-bottom:14px;}
+.fill-blank{display:inline-block;min-width:80px;border:none;border-bottom:1.5px solid var(--lumi-d);padding:0 4px;color:var(--text);font-size:13px;font-family:var(--sans);background:transparent;text-align:center;}
+.fill-blank:focus{outline:none;border-bottom-color:var(--lumi);}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+.btn{padding:10px 20px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans);border:none;transition:all .15s;}
+.btn-primary{background:var(--lumi);color:white;}
+.btn-primary:hover{background:var(--lumi-d);}
+.btn-primary:disabled{background:var(--text-h);cursor:not-allowed;}
+.btn-outline{background:var(--white);color:var(--text-s);border:1px solid var(--border)!important;}
+.btn-outline:hover{background:var(--lumi-pale);border-color:var(--lumi)!important;}
+.btn-print{background:var(--lumi-pale);color:var(--lumi-d);border:1px solid var(--lumi)!important;}
+.btn-print:hover{background:var(--lumi-l);}
+.status{font-size:13px;padding:8px 12px;border-radius:var(--r);margin-top:10px;display:none;}
+.status.ok{background:var(--lumi-pale);color:var(--lumi-d);border:1px solid var(--lumi);display:block;}
+.status.err{background:#fff0f0;color:#c0392b;border:1px solid #f5c6c6;display:block;}
+.status.loading{background:var(--lumi-l);color:var(--lumi-d);border:1px solid var(--lumi);display:block;}
+.result-card{background:var(--lumi-pale);border:1px solid var(--lumi);border-radius:var(--r);padding:14px;margin-top:10px;display:none;}
+.result-card.show{display:block;}
+@media print{.sidebar,.header,.btn-row,.page-sub{display:none!important;}.main{padding:0;max-width:100%;}.form-page{display:block!important;}.form-page:not(.active){display:none!important;}.card{border:none;box-shadow:none;}.consent-text{border:1px solid #ccc;}body{font-size:12px;}}
+@media(max-width:640px){.sidebar{display:none;}.row2,.row3{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
+<div class="header">
+  <img src="data:image/png;base64,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" alt="LUMI">
+  <div><div class="header-name">路米動物醫院</div><div class="header-sub">LUMI Animal Medical Center</div></div>
+  <div class="header-right">院内表單系統</div>
+</div>
 <div class="layout">
-
-  <!-- Sidebar -->
   <div class="sidebar">
-    <div class="sidebar-title">路米動物醫院</div>
-    <div class="nav-item active" onclick="showForm('records')"><div class="nav-dot"></div>病歷查詢</div>
-    <div class="nav-item" onclick="showForm('surgery')"><div class="nav-dot"></div>手術及麻醉同意書</div>
-    <div class="nav-item" onclick="showForm('hospital')"><div class="nav-dot"></div>住院同意書</div>
-    <div class="nav-item" onclick="showForm('euthanasia')"><div class="nav-dot"></div>安樂死同意書</div>
-    <div class="nav-item" onclick="showForm('diagnosis')"><div class="nav-dot"></div>診斷證明書</div>
-    <div class="nav-item" onclick="showForm('discharge')"><div class="nav-dot"></div>自願出院同意書</div>
-    <div class="nav-item" onclick="showForm('abandon')"><div class="nav-dot"></div>放棄治療同意書</div>
-    <div class="nav-item" onclick="showForm('icu')"><div class="nav-dot"></div>重症看護同意書</div>
-    <div class="nav-item" onclick="showForm('dnr')"><div class="nav-dot"></div>不急救同意書</div>
-    <div class="nav-item" onclick="showForm('transfer')"><div class="nav-dot"></div>寵物轉讓同意書</div>
-    <div class="nav-item" onclick="showForm('inpatient')"><div class="nav-dot"></div>住院動物記錄表</div>
+    <div class="sidebar-section">查詢</div>
+    <div class="nav-item active" onclick="showForm('records',this)"><div class="nav-dot"></div>病歷查詢</div>
+    <div class="sidebar-section">同意書</div>
+    <div class="nav-item" onclick="showForm('surgery',this)"><div class="nav-dot"></div>手術及麻醉同意書</div>
+    <div class="nav-item" onclick="showForm('hospital',this)"><div class="nav-dot"></div>住院同意書</div>
+    <div class="nav-item" onclick="showForm('euthanasia',this)"><div class="nav-dot"></div>安樂死同意書</div>
+    <div class="nav-item" onclick="showForm('discharge',this)"><div class="nav-dot"></div>自願出院同意書</div>
+    <div class="nav-item" onclick="showForm('abandon',this)"><div class="nav-dot"></div>放棄治療同意書</div>
+    <div class="nav-item" onclick="showForm('dnr',this)"><div class="nav-dot"></div>不急救同意書</div>
+    <div class="sidebar-section">診療文件</div>
+    <div class="nav-item" onclick="showForm('diagnosis',this)"><div class="nav-dot"></div>診斷證明書</div>
+    <div class="nav-item" onclick="showForm('icu',this)"><div class="nav-dot"></div>重症看護同意書</div>
+    <div class="nav-item" onclick="showForm('transfer',this)"><div class="nav-dot"></div>寵物轉讓同意書</div>
+    <div class="nav-item" onclick="showForm('inpatient',this)"><div class="nav-dot"></div>住院動物記錄表</div>
   </div>
-
   <div class="main">
 
     <!-- 病歷查詢 -->
     <div class="form-page active" id="form-records">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">病歷資料</div></div>
-      <div class="form-header"><div class="form-title">病歷查詢</div><div class="form-sub">以病歷號碼或電話查詢飼主與寵物基本資料</div></div>
+      <div class="page-title">病歷查詢</div>
+      <div class="page-sub">以病歷號碼或飼主電話查詢</div>
       <div class="card">
-        <div class="card-title">搜尋</div>
+        <div class="card-label">搜尋條件</div>
         <div class="row2">
-          <div class="field"><label>病歷號碼</label><input type="text" id="search-medid" placeholder="例：A001"></div>
-          <div class="field"><label>飼主電話</label><input type="text" id="search-phone" placeholder="例：0912345678"></div>
+          <div class="field"><label>病歷號碼</label><input type="text" id="s-medid" placeholder="例：A001"></div>
+          <div class="field"><label>飼主電話</label><input type="text" id="s-phone" placeholder="例：0912345678"></div>
         </div>
         <div class="btn-row" style="margin-top:10px;">
           <button class="btn btn-primary" onclick="searchRecord()">查詢</button>
           <button class="btn btn-outline" onclick="clearSearch()">清除</button>
         </div>
+        <div class="result-card" id="search-result"></div>
       </div>
-      <div id="search-result"></div>
     </div>
 
     <!-- 手術及麻醉同意書 -->
     <div class="form-page" id="form-surgery">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">手術及麻醉同意書</div></div>
-      <div class="form-header"><div class="form-title">手術及麻醉同意書</div></div>
+      <div class="page-title">手術及麻醉同意書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
+        <div class="card-label">基本資料</div>
         <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="s-medid" placeholder="病歷號碼"></div>
-          <div class="field"><label>動物名</label><input type="text" id="s-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="s-owner"></div>
+          <div class="field"><label>病歷號碼</label><input type="text" id="sy-medid"></div>
+          <div class="field"><label>動物名</label><input type="text" id="sy-petname"></div>
+          <div class="field"><label>飼主姓名</label><input type="text" id="sy-owner"></div>
         </div>
         <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="s-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="s-doctor"></div>
+          <div class="field"><label>電話</label><input type="text" id="sy-phone"></div>
+          <div class="field"><label>主治醫師</label><input type="text" id="sy-doctor"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-title">同意書內文</div>
-        <div class="consent-text">
-          本院所有之<input class="fill-blank" id="s-petname2" style="min-width:60px;" placeholder="動物名">，須接受
-          <input class="fill-blank" id="s-surgery-item" style="min-width:160px;" placeholder="手術項目">
-          以及必要之 □鎮靜 □麻醉程序。立同意書人(本人)對於施行該項手術之目的、預估費用、過程、成功率，或可能發生之感染、藥物反應、過敏反應、併發症等危險性，業經貴院醫師詳細說明，已充分了解。本人亦同意醫學並非一種精確的科學，且了解不同個體及體質的動物對手術治療之反應及併發症有所不同，貴院在道德上及法律上均無法保證治療程序的結果，但本人相信貴院一定會基於動物最大福祉，做能力範圍內最好的處置。茲同意貴院施行該項手術及必要之麻醉。若在執行手術時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因手術或麻醉之後果，對貴院提出任何異議或要求。
-        </div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="s-sign"></div>
-          <div class="field"><label>身分證號碼</label><input type="text" id="s-id"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>緊急聯絡人</label><input type="text" id="s-emergency"></div>
-          <div class="field"><label>聯絡電話</label><input type="text" id="s-ephone"></div>
-        </div>
-        <div class="field"><label>日期</label><input type="date" id="s-date"></div>
-        <div class="field"><label>備注</label><textarea id="s-note"></textarea></div>
+        <div class="card-label">同意書內文</div>
+        <div class="consent-text">本院所有之 <input class="fill-blank" id="sy-petname2" placeholder="動物名"> 須接受 <input class="fill-blank" id="sy-item" style="min-width:180px" placeholder="手術項目名稱"> 以及必要之 □鎮靜 □麻醉程序。立同意書人對於施行該項手術之目的、預估費用、過程、成功率，或可能發生之感染、藥物反應、過敏反應、併發症等危險性，業經貴院醫師詳細說明，已充分了解。本人亦同意醫學並非一種精確的科學，且了解不同個體及體質的動物對手術治療之反應及併發症有所不同，貴院在道德上及法律上均無法保證治療程序的結果，但本人相信貴院一定會基於動物最大福祉，做能力範圍內最好的處置。茲同意貴院施行該項手術及必要之麻醉。若在執行手術時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因手術或麻醉之後果，對貴院提出任何異議或要求。</div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="sy-sign"></div><div class="field"><label>身分證號碼</label><input type="text" id="sy-id"></div></div>
+        <div class="row2"><div class="field"><label>緊急聯絡人</label><input type="text" id="sy-emergency"></div><div class="field"><label>聯絡電話</label><input type="text" id="sy-ephone"></div></div>
+        <div class="field"><label>日期</label><input type="date" id="sy-date"></div>
+        <div class="field"><label>備注</label><textarea id="sy-note"></textarea></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('surgery')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('surgery')">清除</button>
-      </div>
-      <div class="status" id="status-surgery"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-surgery" onclick="submitForm('surgery')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('sy')">清除</button></div>
+      <div class="status" id="st-surgery"></div>
     </div>
 
     <!-- 住院同意書 -->
     <div class="form-page" id="form-hospital">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">住院同意書</div></div>
-      <div class="form-header"><div class="form-title">住院同意書</div></div>
+      <div class="page-title">住院同意書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="h-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="h-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="h-owner"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="h-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="h-doctor"></div>
-        </div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="ho-medid"></div><div class="field"><label>動物名</label><input type="text" id="ho-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="ho-owner"></div></div>
+        <div class="row2"><div class="field"><label>電話</label><input type="text" id="ho-phone"></div><div class="field"><label>主治醫師</label><input type="text" id="ho-doctor"></div></div>
       </div>
       <div class="card">
-        <div class="card-title">同意書內文</div>
-        <div class="consent-text">
-          因 <input class="fill-blank" id="h-reason" style="min-width:120px;" placeholder="住院原因"> 術後照顧，需 □住院 □留院 治療，立同意書人業經貴院詳細說明，並已充分了解下列事項：1. 住/留院之原因。2. 住/留院時可能出現之危險性。本人相信貴院一定會基於動物最大福祉，做能力範圍內最好的處置。若在住院期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果對貴院提出任何異議或要求。
-        </div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="h-sign"></div>
-          <div class="field"><label>身分證號碼</label><input type="text" id="h-id"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>緊急聯絡人</label><input type="text" id="h-emergency"></div>
-          <div class="field"><label>聯絡電話</label><input type="text" id="h-ephone"></div>
-        </div>
-        <div class="field"><label>日期</label><input type="date" id="h-date"></div>
-        <div class="field"><label>備注</label><textarea id="h-note"></textarea></div>
+        <div class="card-label">同意書內文</div>
+        <div class="consent-text">因 <input class="fill-blank" id="ho-reason" placeholder="住院原因" style="min-width:120px"> 術後照顧，需 □住院 □留院 治療，立同意書人業經貴院詳細說明，並已充分了解下列事項：1. 住/留院之原因。2. 住/留院時可能出現之危險性。本人相信貴院一定會基於動物最大福祉，做能力範圍內最好的處置。若在住院期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果對貴院提出任何異議或要求。</div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="ho-sign"></div><div class="field"><label>身分證號碼</label><input type="text" id="ho-id"></div></div>
+        <div class="row2"><div class="field"><label>緊急聯絡人</label><input type="text" id="ho-emergency"></div><div class="field"><label>聯絡電話</label><input type="text" id="ho-ephone"></div></div>
+        <div class="field"><label>日期</label><input type="date" id="ho-date"></div>
+        <div class="field"><label>備注</label><textarea id="ho-note"></textarea></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('hospital')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('hospital')">清除</button>
-      </div>
-      <div class="status" id="status-hospital"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-hospital" onclick="submitForm('hospital')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('ho')">清除</button></div>
+      <div class="status" id="st-hospital"></div>
     </div>
 
     <!-- 安樂死同意書 -->
     <div class="form-page" id="form-euthanasia">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">安樂死同意書</div></div>
-      <div class="form-header"><div class="form-title">安樂死同意書</div></div>
+      <div class="page-title">安樂死同意書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="eu-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="eu-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="eu-owner"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="eu-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="eu-doctor"></div>
-        </div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="eu-medid"></div><div class="field"><label>動物名</label><input type="text" id="eu-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="eu-owner"></div></div>
+        <div class="row2"><div class="field"><label>電話</label><input type="text" id="eu-phone"></div><div class="field"><label>主治醫師</label><input type="text" id="eu-doctor"></div></div>
       </div>
       <div class="card">
-        <div class="card-title">同意書內文</div>
-        <div class="consent-text">
-          茲因本人 <input class="fill-blank" id="eu-owner2" placeholder="飼主姓名"> 之所有寵物（犬/貓）<input class="fill-blank" id="eu-petname2" placeholder="動物名">，同意接受安樂術，立同意書人對於施行安樂術之原因、過程，業經貴院醫師詳細說明已充分瞭解，茲同意由貴院施行安樂術及必要之麻醉與處置，深信貴院醫師已善盡診療責任，概與貴院醫師及醫務人員無涉，絕無異議。<br><br>
-          安樂死原因：<input class="fill-blank" id="eu-reason" style="min-width:200px;" placeholder="請填寫原因">
-        </div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="eu-sign"></div>
-          <div class="field"><label>身分證號碼</label><input type="text" id="eu-id"></div>
-        </div>
+        <div class="card-label">同意書內文</div>
+        <div class="consent-text">茲因本人 <input class="fill-blank" id="eu-owner2" placeholder="飼主姓名"> 之所有寵物（犬/貓）<input class="fill-blank" id="eu-petname2" placeholder="動物名">，同意接受安樂術，立同意書人對於施行安樂術之原因、過程，業經貴院醫師詳細說明已充分瞭解，茲同意由貴院施行安樂術及必要之麻醉與處置，深信貴院醫師已善盡診療責任，概與貴院醫師及醫務人員無涉，絕無異議。<br><br>安樂死原因：<input class="fill-blank" id="eu-reason" style="min-width:260px" placeholder="請填寫原因"></div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="eu-sign"></div><div class="field"><label>身分證號碼</label><input type="text" id="eu-id"></div></div>
         <div class="field"><label>日期</label><input type="date" id="eu-date"></div>
         <div class="field"><label>備注</label><textarea id="eu-note"></textarea></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('euthanasia')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('euthanasia')">清除</button>
-      </div>
-      <div class="status" id="status-euthanasia"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-euthanasia" onclick="submitForm('euthanasia')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('eu')">清除</button></div>
+      <div class="status" id="st-euthanasia"></div>
     </div>
 
     <!-- 診斷證明書 -->
     <div class="form-page" id="form-diagnosis">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">診斷證明書</div></div>
-      <div class="form-header"><div class="form-title">診斷證明書</div></div>
+      <div class="page-title">診斷證明書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="dx-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="dx-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="dx-owner"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="dx-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="dx-doctor"></div>
-        </div>
-        <div class="field"><label>診斷內容</label><textarea id="dx-content" placeholder="請填寫診斷結果與說明" style="min-height:100px;"></textarea></div>
-        <div class="row2">
-          <div class="field"><label>立書人簽章</label><input type="text" id="dx-sign"></div>
-          <div class="field"><label>日期</label><input type="date" id="dx-date"></div>
-        </div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="dx-medid"></div><div class="field"><label>動物名</label><input type="text" id="dx-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="dx-owner"></div></div>
+        <div class="row2"><div class="field"><label>電話</label><input type="text" id="dx-phone"></div><div class="field"><label>主治醫師</label><input type="text" id="dx-doctor"></div></div>
+        <div class="field"><label>診斷內容</label><textarea id="dx-content" placeholder="請填寫診斷結果與說明" style="min-height:100px"></textarea></div>
+        <div class="row2"><div class="field"><label>立書人簽章</label><input type="text" id="dx-sign"></div><div class="field"><label>日期</label><input type="date" id="dx-date"></div></div>
         <div class="field"><label>備注</label><textarea id="dx-note"></textarea></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('diagnosis')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('diagnosis')">清除</button>
-      </div>
-      <div class="status" id="status-diagnosis"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-diagnosis" onclick="submitForm('diagnosis')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('dx')">清除</button></div>
+      <div class="status" id="st-diagnosis"></div>
     </div>
 
     <!-- 自願出院同意書 -->
     <div class="form-page" id="form-discharge">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">自願出院同意書</div></div>
-      <div class="form-header"><div class="form-title">自願出院同意書</div></div>
+      <div class="page-title">自願出院同意書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="dc-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="dc-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="dc-owner"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="dc-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="dc-doctor"></div>
-        </div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="dc-medid"></div><div class="field"><label>動物名</label><input type="text" id="dc-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="dc-owner"></div></div>
+        <div class="row2"><div class="field"><label>電話</label><input type="text" id="dc-phone"></div><div class="field"><label>主治醫師</label><input type="text" id="dc-doctor"></div></div>
         <div class="field"><label>出院原因</label><textarea id="dc-reason"></textarea></div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="dc-sign"></div>
-          <div class="field"><label>身分證號碼</label><input type="text" id="dc-id"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>緊急聯絡人</label><input type="text" id="dc-emergency"></div>
-          <div class="field"><label>聯絡電話</label><input type="text" id="dc-ephone"></div>
-        </div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="dc-sign"></div><div class="field"><label>身分證號碼</label><input type="text" id="dc-id"></div></div>
+        <div class="row2"><div class="field"><label>緊急聯絡人</label><input type="text" id="dc-emergency"></div><div class="field"><label>聯絡電話</label><input type="text" id="dc-ephone"></div></div>
         <div class="field"><label>日期</label><input type="date" id="dc-date"></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('discharge')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('discharge')">清除</button>
-      </div>
-      <div class="status" id="status-discharge"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-discharge" onclick="submitForm('discharge')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('dc')">清除</button></div>
+      <div class="status" id="st-discharge"></div>
     </div>
 
     <!-- 放棄治療同意書 -->
     <div class="form-page" id="form-abandon">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">放棄治療同意書</div></div>
-      <div class="form-header"><div class="form-title">放棄治療同意書</div></div>
+      <div class="page-title">放棄治療同意書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="ab-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="ab-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="ab-owner"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="ab-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="ab-doctor"></div>
-        </div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="ab-medid"></div><div class="field"><label>動物名</label><input type="text" id="ab-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="ab-owner"></div></div>
+        <div class="row2"><div class="field"><label>電話</label><input type="text" id="ab-phone"></div><div class="field"><label>主治醫師</label><input type="text" id="ab-doctor"></div></div>
       </div>
       <div class="card">
-        <div class="card-title">同意書內文</div>
-        <div class="consent-text">
-          立同意書人 <input class="fill-blank" id="ab-owner2" placeholder="飼主姓名"> 寵物種別 <input class="fill-blank" id="ab-species" placeholder="犬/貓">，經本人送至貴院治療，今日因個人因素決定停止服藥。本人同意下列各款約定：自願放棄繼續治療，並了解放棄治療可能對動物造成之影響與風險，概與貴院醫師及醫務人員無涉，絕無異議。<br><br>
-          放棄原因：<textarea class="fill-blank" id="ab-reason" style="min-width:300px;min-height:50px;" placeholder="請填寫原因"></textarea>
-        </div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="ab-sign"></div>
-          <div class="field"><label>日期</label><input type="date" id="ab-date"></div>
-        </div>
+        <div class="card-label">同意書內文</div>
+        <div class="consent-text">立同意書人 <input class="fill-blank" id="ab-owner2" placeholder="飼主姓名"> 寵物種別 <input class="fill-blank" id="ab-species" placeholder="犬/貓">，經本人送至貴院治療，今日因個人因素決定停止服藥。本人同意下列各款約定：自願放棄繼續治療，並了解放棄治療可能對動物造成之影響與風險，概與貴院醫師及醫務人員無涉，絕無異議。<br><br>放棄原因：<textarea class="fill-blank" id="ab-reason" style="min-width:300px;min-height:50px" placeholder="請填寫原因"></textarea></div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="ab-sign"></div><div class="field"><label>日期</label><input type="date" id="ab-date"></div></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('abandon')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('abandon')">清除</button>
-      </div>
-      <div class="status" id="status-abandon"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-abandon" onclick="submitForm('abandon')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('ab')">清除</button></div>
+      <div class="status" id="st-abandon"></div>
     </div>
 
     <!-- 重症看護同意書 -->
     <div class="form-page" id="form-icu">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">重症看護同意書</div></div>
-      <div class="form-header"><div class="form-title">重症看護同意書</div></div>
+      <div class="page-title">重症看護同意書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="icu-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="icu-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="icu-owner"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="icu-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="icu-doctor"></div>
-        </div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="ic-medid"></div><div class="field"><label>動物名</label><input type="text" id="ic-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="ic-owner"></div></div>
+        <div class="row2"><div class="field"><label>電話</label><input type="text" id="ic-phone"></div><div class="field"><label>主治醫師</label><input type="text" id="ic-doctor"></div></div>
       </div>
       <div class="card">
-        <div class="card-title">同意書內文</div>
-        <div class="consent-text">
-          因患 <input class="fill-blank" id="icu-disease" style="min-width:160px;" placeholder="病症描述">，須接受夜間重症看護。立同意書人(本人)對於施行看護目的、費用、過程，或可能發生之併發症、危險性，業經貴院醫師詳細解說，已充分了解。本人相信貴院定會基於動物的最大福祉，做能力範圍內最好的處置。若在看護時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果，而對貴院提出任何異議或要求。
-        </div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="icu-sign"></div>
-          <div class="field"><label>身分證號碼</label><input type="text" id="icu-id"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>緊急聯絡人</label><input type="text" id="icu-emergency"></div>
-          <div class="field"><label>聯絡電話</label><input type="text" id="icu-ephone"></div>
-        </div>
-        <div class="field"><label>日期</label><input type="date" id="icu-date"></div>
+        <div class="card-label">同意書內文</div>
+        <div class="consent-text">因患 <input class="fill-blank" id="ic-disease" style="min-width:160px" placeholder="病症描述">，須接受夜間重症看護。立同意書人對於施行看護目的、費用、過程，或可能發生之併發症、危險性，業經貴院醫師詳細解說，已充分了解。本人相信貴院定會基於動物的最大福祉，做能力範圍內最好的處置。若在看護時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果，而對貴院提出任何異議或要求。</div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="ic-sign"></div><div class="field"><label>身分證號碼</label><input type="text" id="ic-id"></div></div>
+        <div class="row2"><div class="field"><label>緊急聯絡人</label><input type="text" id="ic-emergency"></div><div class="field"><label>聯絡電話</label><input type="text" id="ic-ephone"></div></div>
+        <div class="field"><label>日期</label><input type="date" id="ic-date"></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('icu')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('icu')">清除</button>
-      </div>
-      <div class="status" id="status-icu"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-icu" onclick="submitForm('icu')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('ic')">清除</button></div>
+      <div class="status" id="st-icu"></div>
     </div>
 
     <!-- 不急救同意書 -->
     <div class="form-page" id="form-dnr">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">不急救同意書</div></div>
-      <div class="form-header"><div class="form-title">不急救同意書（DNR）</div></div>
+      <div class="page-title">不急救同意書（DNR）</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="dnr-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="dnr-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="dnr-owner"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>電話</label><input type="text" id="dnr-phone"></div>
-          <div class="field"><label>主治醫師</label><input type="text" id="dnr-doctor"></div>
-        </div>
-        <div class="field"><label>病症描述</label><textarea id="dnr-disease"></textarea></div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="dn-medid"></div><div class="field"><label>動物名</label><input type="text" id="dn-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="dn-owner"></div></div>
+        <div class="row2"><div class="field"><label>電話</label><input type="text" id="dn-phone"></div><div class="field"><label>主治醫師</label><input type="text" id="dn-doctor"></div></div>
+        <div class="field"><label>病症描述</label><textarea id="dn-disease"></textarea></div>
       </div>
       <div class="card">
-        <div class="card-title">同意書內文</div>
-        <div class="consent-text">
-          立同意書人(本人)對於施行看護目的、費用、過程，或可能發生之併發症、危險性，業經貴院醫師詳細解說，已充分了解。本人相信貴院定會基於動物的最大福祉，做能力範圍內最好的處置。若在看護時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果，而對貴院提出任何異議或要求。本人同意若動物發生心跳停止、呼吸停止等緊急情況，不施行心肺復甦術（CPR）等急救措施。
-        </div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="dnr-sign"></div>
-          <div class="field"><label>身分證號碼</label><input type="text" id="dnr-id"></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>緊急聯絡人</label><input type="text" id="dnr-emergency"></div>
-          <div class="field"><label>聯絡電話</label><input type="text" id="dnr-ephone"></div>
-        </div>
-        <div class="field"><label>日期</label><input type="date" id="dnr-date"></div>
+        <div class="card-label">同意書內文</div>
+        <div class="consent-text">立同意書人對於施行看護目的、費用、過程，或可能發生之併發症、危險性，業經貴院醫師詳細解說，已充分了解。本人相信貴院定會基於動物的最大福祉，做能力範圍內最好的處置。若在看護時或恢復期間發生緊急或意外情況，同意病患接受貴院必要之處置，並確認不因後果，而對貴院提出任何異議或要求。本人同意若動物發生心跳停止、呼吸停止等緊急情況，不施行心肺復甦術（CPR）等急救措施。</div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="dn-sign"></div><div class="field"><label>身分證號碼</label><input type="text" id="dn-id"></div></div>
+        <div class="row2"><div class="field"><label>緊急聯絡人</label><input type="text" id="dn-emergency"></div><div class="field"><label>聯絡電話</label><input type="text" id="dn-ephone"></div></div>
+        <div class="field"><label>日期</label><input type="date" id="dn-date"></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('dnr')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('dnr')">清除</button>
-      </div>
-      <div class="status" id="status-dnr"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-dnr" onclick="submitForm('dnr')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('dn')">清除</button></div>
+      <div class="status" id="st-dnr"></div>
     </div>
 
     <!-- 寵物轉讓同意書 -->
     <div class="form-page" id="form-transfer">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">寵物轉讓同意書</div></div>
-      <div class="form-header"><div class="form-title">寵物轉讓同意書</div></div>
+      <div class="page-title">寵物轉讓同意書</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="card-title">基本資料</div>
-        <div class="row3">
-          <div class="field"><label>病歷號碼</label><input type="text" id="tr-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="tr-petname"></div>
-          <div class="field"><label>飼主姓名</label><input type="text" id="tr-owner"></div>
-        </div>
-        <div class="row3">
-          <div class="field"><label>電話</label><input type="text" id="tr-phone"></div>
-          <div class="field"><label>性別</label><select id="tr-gender"><option>公</option><option>母</option></select></div>
-          <div class="field"><label>毛色</label><input type="text" id="tr-color"></div>
-        </div>
+        <div class="card-label">基本資料</div>
+        <div class="row3"><div class="field"><label>病歷號碼</label><input type="text" id="tr-medid"></div><div class="field"><label>動物名</label><input type="text" id="tr-petname"></div><div class="field"><label>飼主姓名</label><input type="text" id="tr-owner"></div></div>
+        <div class="row3"><div class="field"><label>電話</label><input type="text" id="tr-phone"></div><div class="field"><label>性別</label><select id="tr-gender"><option value="公">公</option><option value="母">母</option></select></div><div class="field"><label>毛色</label><input type="text" id="tr-color"></div></div>
         <div class="field"><label>轉讓原因</label><textarea id="tr-reason"></textarea></div>
-        <div class="row2">
-          <div class="field"><label>立書同意人簽章</label><input type="text" id="tr-sign"></div>
-          <div class="field"><label>日期</label><input type="date" id="tr-date"></div>
-        </div>
+        <div class="row2"><div class="field"><label>立書同意人簽章</label><input type="text" id="tr-sign"></div><div class="field"><label>日期</label><input type="date" id="tr-date"></div></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('transfer')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('transfer')">清除</button>
-      </div>
-      <div class="status" id="status-transfer"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-transfer" onclick="submitForm('transfer')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('tr')">清除</button></div>
+      <div class="status" id="st-transfer"></div>
     </div>
 
     <!-- 住院動物記錄表 -->
     <div class="form-page" id="form-inpatient">
-      <div class="print-header"><div class="print-title">路米動物醫院</div><div class="print-sub">住院動物記錄表</div></div>
-      <div class="form-header"><div class="form-title">住院動物記錄表</div></div>
+      <div class="page-title">住院動物記錄表</div>
+      <div class="page-sub">填寫完成後按「儲存至試算表」，再按「列印」取得紙本</div>
       <div class="card">
-        <div class="row3">
-          <div class="field"><label>住院日期</label><input type="date" id="ip-checkin"></div>
-          <div class="field"><label>病歷號碼</label><input type="text" id="ip-medid"></div>
-          <div class="field"><label>動物名</label><input type="text" id="ip-petname"></div>
-        </div>
-        <div class="row3">
-          <div class="field"><label>種別</label><select id="ip-species"><option>犬</option><option>貓</option><option>其他</option></select></div>
-          <div class="field"><label>品種</label><input type="text" id="ip-breed"></div>
-          <div class="field"><label>住院天數</label><input type="number" id="ip-days" min="1"></div>
-        </div>
-        <div class="row3">
-          <div class="field"><label>主治醫師</label><input type="text" id="ip-doctor"></div>
-          <div class="field"><label>主人姓名</label><input type="text" id="ip-owner"></div>
-          <div class="field"><label>電話</label><input type="text" id="ip-phone"></div>
-        </div>
-        <div class="row3">
-          <div class="field"><label>年齡</label><input type="text" id="ip-age"></div>
-          <div class="field"><label>性別</label><select id="ip-gender"><option value="">不確定</option><option value="公">公</option><option value="母">母</option></select></div>
-          <div class="field"><label>是否結紮</label><select id="ip-neuter"><option value="">不確定</option><option value="是">是</option><option value="否">否</option></select></div>
-        </div>
-        <div class="row2">
-          <div class="field"><label>出院日期</label><input type="date" id="ip-checkout"></div>
-          <div class="field"><label>備注</label><input type="text" id="ip-note"></div>
-        </div>
+        <div class="card-label">住院資料</div>
+        <div class="row3"><div class="field"><label>住院日期</label><input type="date" id="ip-checkin"></div><div class="field"><label>病歷號碼</label><input type="text" id="ip-medid"></div><div class="field"><label>動物名</label><input type="text" id="ip-petname"></div></div>
+        <div class="row3"><div class="field"><label>種別</label><select id="ip-species"><option value="犬">犬</option><option value="貓">貓</option><option value="其他">其他</option></select></div><div class="field"><label>品種</label><input type="text" id="ip-breed"></div><div class="field"><label>住院天數</label><input type="number" id="ip-days" min="1"></div></div>
+        <div class="row3"><div class="field"><label>主治醫師</label><input type="text" id="ip-doctor"></div><div class="field"><label>主人姓名</label><input type="text" id="ip-owner"></div><div class="field"><label>電話</label><input type="text" id="ip-phone"></div></div>
+        <div class="row3"><div class="field"><label>年齡</label><input type="text" id="ip-age"></div><div class="field"><label>性別</label><select id="ip-gender"><option value="">不確定</option><option value="公">公</option><option value="母">母</option></select></div><div class="field"><label>是否結紮</label><select id="ip-neuter"><option value="">不確定</option><option value="是">是</option><option value="否">否</option></select></div></div>
+        <div class="row2"><div class="field"><label>出院日期</label><input type="date" id="ip-checkout"></div><div class="field"><label>備注</label><input type="text" id="ip-note"></div></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="submitForm('inpatient')">儲存至試算表</button>
-        <button class="btn btn-print" onclick="printForm()">列印</button>
-        <button class="btn btn-outline" onclick="clearForm('inpatient')">清除</button>
-      </div>
-      <div class="status" id="status-inpatient"></div>
+      <div class="btn-row"><button class="btn btn-primary" id="btn-inpatient" onclick="submitForm('inpatient')">儲存至試算表</button><button class="btn btn-print" onclick="window.print()">列印</button><button class="btn btn-outline" onclick="clearForm('ip')">清除</button></div>
+      <div class="status" id="st-inpatient"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-// ★ 貼上你的 Google Apps Script URL
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbwz7UfULvfJcoq8BdfKX4Ev8N4fhuzjweE1ZRG-SDG2sJ-VfHq45ePjSGRku9g_SR24YQ/exec";
+const SHEET_URL="https://script.google.com/macros/s/AKfycbwz7UfULvfJcoq8BdfKX4Ev8N4fhuzjweE1ZRG-SDG2sJ-VfHq45ePjSGRku9g_SR24YQ/exec";
 
-function showForm(id) {
-  document.querySelectorAll(".form-page").forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-  document.getElementById("form-" + id).classList.add("active");
-  event.currentTarget.classList.add("active");
+const FORM_FIELDS={
+  surgery:   {prefix:"sy",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","手術項目":"item","醫師":"doctor","立書人簽章":"sign","身分證號":"id","緊急聯絡人":"emergency","聯絡電話":"ephone","日期":"date","備注":"note"}},
+  hospital:  {prefix:"ho",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","住院原因":"reason","醫師":"doctor","立書人簽章":"sign","身分證號":"id","緊急聯絡人":"emergency","聯絡電話":"ephone","日期":"date","備注":"note"}},
+  euthanasia:{prefix:"eu",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","安樂死原因":"reason","醫師":"doctor","立書人簽章":"sign","身分證號":"id","日期":"date","備注":"note"}},
+  diagnosis: {prefix:"dx",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","診斷內容":"content","醫師":"doctor","立書人簽章":"sign","日期":"date","備注":"note"}},
+  discharge: {prefix:"dc",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","出院原因":"reason","醫師":"doctor","立書人簽章":"sign","身分證號":"id","緊急聯絡人":"emergency","聯絡電話":"ephone","日期":"date"}},
+  abandon:   {prefix:"ab",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","放棄原因":"reason","醫師":"doctor","立書人簽章":"sign","日期":"date"}},
+  icu:       {prefix:"ic",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","病症":"disease","醫師":"doctor","立書人簽章":"sign","身分證號":"id","緊急聯絡人":"emergency","聯絡電話":"ephone","日期":"date"}},
+  dnr:       {prefix:"dn",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","病症":"disease","醫師":"doctor","立書人簽章":"sign","身分證號":"id","緊急聯絡人":"emergency","聯絡電話":"ephone","日期":"date"}},
+  transfer:  {prefix:"tr",keys:{"病歷號碼":"medid","動物名":"petname","飼主姓名":"owner","電話":"phone","性別":"gender","毛色":"color","轉讓原因":"reason","立書人簽章":"sign","日期":"date"}},
+  inpatient: {prefix:"ip",keys:{"住院日期":"checkin","病歷號碼":"medid","動物名":"petname","種別":"species","住院天數":"days","主治醫師":"doctor","主人姓名":"owner","電話":"phone","品種":"breed","年齡":"age","性別":"gender","是否結紮":"neuter","備注":"note","出院日期":"checkout"}},
+};
+
+const SHEET_NAMES={surgery:"手術及麻醉同意書",hospital:"住院同意書",euthanasia:"安樂死同意書",diagnosis:"診斷證明書",discharge:"自願出院同意書",abandon:"放棄治療同意書",icu:"重症看護同意書",dnr:"不急救同意書",transfer:"寵物轉讓同意書",inpatient:"住院動物記錄表"};
+
+function showForm(id,el){
+  document.querySelectorAll(".form-page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("form-"+id).classList.add("active");
+  if(el)el.classList.add("active");
+  window.scrollTo(0,0);
 }
 
-function printForm() { window.print(); }
-
-function showStatus(id, msg, type) {
-  const el = document.getElementById("status-" + id);
-  el.textContent = msg; el.className = "status " + type;
-  if (type === "ok") setTimeout(() => el.className = "status", 3000);
+function showStatus(id,msg,type){
+  const el=document.getElementById("st-"+id);
+  if(!el)return;
+  el.textContent=msg;el.className="status "+type;
+  if(type==="ok")setTimeout(()=>{el.className="status";},4000);
 }
 
-function clearForm(type) {
-  document.querySelectorAll("#form-" + type + " input, #form-" + type + " textarea, #form-" + type + " select").forEach(el => {
-    if (el.tagName === "SELECT") el.selectedIndex = 0;
-    else el.value = "";
+function clearForm(prefix){
+  document.querySelectorAll("[id^='"+prefix+"-']").forEach(el=>{
+    if(el.tagName==="SELECT")el.selectedIndex=0;
+    else el.value="";
   });
 }
 
-function clearSearch() {
-  document.getElementById("search-medid").value = "";
-  document.getElementById("search-phone").value = "";
-  document.getElementById("search-result").innerHTML = "";
+function clearSearch(){
+  document.getElementById("s-medid").value="";
+  document.getElementById("s-phone").value="";
+  const r=document.getElementById("search-result");
+  r.classList.remove("show");r.innerHTML="";
 }
 
-// 收集各表單的欄位值
-function collectFields(type) {
-  const get = id => (document.getElementById(id) || {}).value || "";
-  const maps = {
-    surgery: { "病歷號碼":get("s-medid"), "動物名":get("s-petname"), "飼主姓名":get("s-owner"), "電話":get("s-phone"), "手術項目":get("s-surgery-item"), "醫師":get("s-doctor"), "立書人簽章":get("s-sign"), "身分證號":get("s-id"), "緊急聯絡人":get("s-emergency"), "聯絡電話":get("s-ephone"), "日期":get("s-date"), "備注":get("s-note") },
-    hospital: { "病歷號碼":get("h-medid"), "動物名":get("h-petname"), "飼主姓名":get("h-owner"), "電話":get("h-phone"), "住院原因":get("h-reason"), "醫師":get("h-doctor"), "立書人簽章":get("h-sign"), "身分證號":get("h-id"), "緊急聯絡人":get("h-emergency"), "聯絡電話":get("h-ephone"), "日期":get("h-date"), "備注":get("h-note") },
-    euthanasia: { "病歷號碼":get("eu-medid"), "動物名":get("eu-petname"), "飼主姓名":get("eu-owner"), "電話":get("eu-phone"), "安樂死原因":get("eu-reason"), "醫師":get("eu-doctor"), "立書人簽章":get("eu-sign"), "身分證號":get("eu-id"), "日期":get("eu-date"), "備注":get("eu-note") },
-    diagnosis: { "病歷號碼":get("dx-medid"), "動物名":get("dx-petname"), "飼主姓名":get("dx-owner"), "電話":get("dx-phone"), "診斷內容":get("dx-content"), "醫師":get("dx-doctor"), "立書人簽章":get("dx-sign"), "日期":get("dx-date"), "備注":get("dx-note") },
-    discharge: { "病歷號碼":get("dc-medid"), "動物名":get("dc-petname"), "飼主姓名":get("dc-owner"), "電話":get("dc-phone"), "出院原因":get("dc-reason"), "醫師":get("dc-doctor"), "立書人簽章":get("dc-sign"), "身分證號":get("dc-id"), "緊急聯絡人":get("dc-emergency"), "聯絡電話":get("dc-ephone"), "日期":get("dc-date") },
-    abandon: { "病歷號碼":get("ab-medid"), "動物名":get("ab-petname"), "飼主姓名":get("ab-owner"), "電話":get("ab-phone"), "放棄原因":get("ab-reason"), "醫師":get("ab-doctor"), "立書人簽章":get("ab-sign"), "日期":get("ab-date") },
-    icu: { "病歷號碼":get("icu-medid"), "動物名":get("icu-petname"), "飼主姓名":get("icu-owner"), "電話":get("icu-phone"), "病症":get("icu-disease"), "醫師":get("icu-doctor"), "立書人簽章":get("icu-sign"), "身分證號":get("icu-id"), "緊急聯絡人":get("icu-emergency"), "聯絡電話":get("icu-ephone"), "日期":get("icu-date") },
-    dnr: { "病歷號碼":get("dnr-medid"), "動物名":get("dnr-petname"), "飼主姓名":get("dnr-owner"), "電話":get("dnr-phone"), "病症":get("dnr-disease"), "醫師":get("dnr-doctor"), "立書人簽章":get("dnr-sign"), "身分證號":get("dnr-id"), "緊急聯絡人":get("dnr-emergency"), "聯絡電話":get("dnr-ephone"), "日期":get("dnr-date") },
-    transfer: { "病歷號碼":get("tr-medid"), "動物名":get("tr-petname"), "飼主姓名":get("tr-owner"), "電話":get("tr-phone"), "性別":get("tr-gender"), "毛色":get("tr-color"), "轉讓原因":get("tr-reason"), "立書人簽章":get("tr-sign"), "日期":get("tr-date") },
-    inpatient: { "住院日期":get("ip-checkin"), "病歷號碼":get("ip-medid"), "動物名":get("ip-petname"), "種別":get("ip-species"), "住院天數":get("ip-days"), "主治醫師":get("ip-doctor"), "主人姓名":get("ip-owner"), "電話":get("ip-phone"), "品種":get("ip-breed"), "年齡":get("ip-age"), "性別":get("ip-gender"), "是否結紮":get("ip-neuter"), "備注":get("ip-note"), "出院日期":get("ip-checkout") },
-  };
-  return maps[type] || {};
-}
-
-async function submitForm(type) {
-  if (!SHEET_URL) {
-    showStatus(type, "⚠️ 尚未設定 Google Apps Script URL，請填入後重新上傳", "err");
-    return;
-  }
-  showStatus(type, "儲存中...", "loading");
-  try {
-    await fetch(SHEET_URL, {
-      method: "POST", mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "new_form", formType: type, fields: collectFields(type) })
-    });
-    showStatus(type, "✅ 已成功儲存至 Google 試算表", "ok");
-  } catch(e) {
-    showStatus(type, "❌ 儲存失敗：" + e.message, "err");
+async function submitForm(type){
+  const config=FORM_FIELDS[type];
+  if(!config){alert("未知表單");return;}
+  const btn=document.getElementById("btn-"+type);
+  if(btn)btn.disabled=true;
+  showStatus(type,"儲存中...","loading");
+  const fields={};
+  Object.entries(config.keys).forEach(([label,suffix])=>{
+    const el=document.getElementById(config.prefix+"-"+suffix);
+    fields[label]=el?el.value.trim():"";
+  });
+  // 同意書填空欄
+  document.querySelectorAll(".consent-text .fill-blank").forEach(el=>{
+    if(el.id&&el.id.startsWith(config.prefix+"-")){
+      const key="(填空)"+el.id;
+      fields[key]=el.value.trim();
+    }
+  });
+  try{
+    const payload={action:"new_form",formType:type,fields};
+    const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+    await fetch(url,{method:"GET",mode:"no-cors"});
+    showStatus(type,"✅ 已成功儲存至「"+SHEET_NAMES[type]+"」分頁","ok");
+  }catch(e){
+    showStatus(type,"❌ 儲存失敗："+e.message,"err");
+  }finally{
+    if(btn)btn.disabled=false;
   }
 }
 
-function searchRecord() {
-  const medid = document.getElementById("search-medid").value.trim();
-  const phone = document.getElementById("search-phone").value.trim();
-  if (!medid && !phone) { alert("請輸入病歷號碼或電話"); return; }
-  // 顯示提示（實際查詢需透過 Apps Script 回傳資料，或直接在試算表中篩選）
-  document.getElementById("search-result").innerHTML = `
-    <div style="background:var(--accent-l);border:1px solid var(--accent-m);border-radius:var(--r);padding:14px;margin-top:10px;font-size:13px;color:var(--accent);">
-      查詢條件已記錄。請至 Google 試算表「病歷資料」分頁，使用 Ctrl+F 搜尋「${medid||phone}」，或使用篩選功能。<br><br>
-      <strong>建議：</strong>在試算表中開啟篩選功能（選取標題列 → 資料 → 建立篩選器），即可快速依任何欄位搜尋。
-    </div>`;
+function searchRecord(){
+  const medid=document.getElementById("s-medid").value.trim();
+  const phone=document.getElementById("s-phone").value.trim();
+  if(!medid&&!phone){alert("請輸入病歷號碼或電話");return;}
+  const result=document.getElementById("search-result");
+  result.className="result-card show";
+  result.innerHTML=(medid?`<div style="display:flex;gap:8px;font-size:13px;margin-bottom:6px;"><div style="color:var(--text-h);min-width:70px;">病歷號碼</div><div style="font-weight:500">${medid}</div></div>`:"")+
+  (phone?`<div style="display:flex;gap:8px;font-size:13px;margin-bottom:6px;"><div style="color:var(--text-h);min-width:70px;">電話</div><div style="font-weight:500">${phone}</div></div>`:"")+
+  `<div style="font-size:12px;color:var(--text-h);margin-top:10px;">請至 Google 試算表「病歷資料」分頁，使用篩選功能搜尋。</div>`;
 }
 
-// 設定今天日期為預設值
-document.querySelectorAll("input[type=date]").forEach(el => {
-  if (!el.value) el.value = new Date().toISOString().slice(0,10);
+document.querySelectorAll("input[type=date]").forEach(el=>{
+  if(!el.value)el.value=new Date().toISOString().slice(0,10);
 });
 </script>
 </body>
