@@ -155,7 +155,25 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
       </div>
     </div>
     <div class="field"><label>性別</label><div class="tg" id="gG"><div class="tb" onclick="selGender('Male',this)">公</div><div class="tb" onclick="selGender('Female',this)">母</div><div class="tb" onclick="selGender('',this)">不確定</div></div></div>
-    <div class="field"><label>生日</label><input type="date" id="petBirth"></div>
+    <div class="field">
+      <label>年齡 / 生日</label>
+      <div class="tg" id="birthModeG" style="margin-bottom:8px;">
+        <div class="tb" id="bm-age" onclick="setBirthMode('age',this)" style="font-size:12px;">幾歲幾個月</div>
+        <div class="tb sel" id="bm-date" onclick="setBirthMode('date',this)" style="font-size:12px;">精準生日</div>
+      </div>
+      <div id="birthDateWrap">
+        <input type="date" id="petBirth" placeholder="選擇生日">
+      </div>
+      <div id="birthAgeWrap" style="display:none;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="petAgeYear" min="0" max="30" placeholder="歲" style="width:80px;">
+          <span style="font-size:14px;color:var(--text-s);white-space:nowrap;">歲</span>
+          <input type="number" id="petAgeMonth" min="0" max="11" placeholder="月" style="width:80px;">
+          <span style="font-size:14px;color:var(--text-s);white-space:nowrap;">個月</span>
+        </div>
+        <div class="hint">系統將自動換算為預估生日</div>
+      </div>
+    </div>
     <div class="field"><label>是否結紮</label><div class="tg" id="nG"><div class="tb" onclick="selNeuter('是',this)">已結紮</div><div class="tb" onclick="selNeuter('否',this)">未結紮</div><div class="tb" onclick="selNeuter('不知',this)">不確定</div></div></div>
   </div>
   <div class="btn-row">
@@ -186,10 +204,10 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
         <label>上傳照片或文件</label>
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('medFiles').click()">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:6px;color:var(--lumi-d)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-          <div style="font-size:13px;color:var(--lumi-d);font-weight:500">點擊選擇檔案</div>
-          <div style="font-size:11px;color:var(--text-h);margin-top:2px">支援 JPG、PNG、PDF（最多5個檔案）</div>
+          <div style="font-size:13px;color:var(--lumi-d);font-weight:500">點擊選擇或拍攝</div>
+          <div style="font-size:11px;color:var(--text-h);margin-top:2px">支援照片、影像、PDF（手機可直接拍照）</div>
         </div>
-        <input type="file" id="medFiles" multiple accept="image/*,.pdf" style="display:none" onchange="onFilesSelected()">
+        <input type="file" id="medFiles" multiple accept="image/*,.pdf,video/*" capture="environment" style="display:none" onchange="onFilesSelected()">
         <div id="fileList" style="margin-top:8px;"></div>
       </div>
       <div class="field">
@@ -369,6 +387,46 @@ function toPage3(){
   advancePage(3);
 }
 
+function setBirthMode(mode, el){
+  document.getElementById("birthModeG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));
+  el.classList.add("sel");
+  if(mode==="age"){
+    document.getElementById("birthDateWrap").style.display="none";
+    document.getElementById("birthAgeWrap").style.display="block";
+    document.getElementById("petBirth").value="";
+  } else {
+    document.getElementById("birthDateWrap").style.display="block";
+    document.getElementById("birthAgeWrap").style.display="none";
+    document.getElementById("petAgeYear").value="";
+    document.getElementById("petAgeMonth").value="";
+  }
+}
+
+function getBirthValue(){
+  const mode = document.getElementById("bm-age").classList.contains("sel") ? "age" : "date";
+  if(mode==="date"){
+    return document.getElementById("petBirth").value || "";
+  } else {
+    const y = parseInt(document.getElementById("petAgeYear").value)||0;
+    const m = parseInt(document.getElementById("petAgeMonth").value)||0;
+    if(y===0 && m===0) return "";
+    // 換算預估生日
+    const now = new Date();
+    now.setFullYear(now.getFullYear()-y);
+    now.setMonth(now.getMonth()-m);
+    return now.toISOString().slice(0,10);
+  }
+}
+
+function getBirthLabel(){
+  const mode = document.getElementById("bm-age").classList.contains("sel") ? "age" : "date";
+  if(mode==="date") return document.getElementById("petBirth").value||"";
+  const y = parseInt(document.getElementById("petAgeYear").value)||0;
+  const m = parseInt(document.getElementById("petAgeMonth").value)||0;
+  if(y===0 && m===0) return "";
+  return (y>0?y+"歲":"")+(m>0?m+"個月":"");
+}
+
 function selGender(val,el){gender=val;document.getElementById("gG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
 function selNeuter(val,el){neuter=val;document.getElementById("nG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
 function toggleMedRec(item,id){
@@ -499,7 +557,7 @@ async function submitAll(){
     if(document.getElementById("petKind").value)pb.kindID=document.getElementById("petKind").value;
     if(document.getElementById("petBreedId").value)pb.breedID=document.getElementById("petBreedId").value;
     if(gender)pb.gender=gender;
-    if(document.getElementById("petBirth").value)pb.birth=document.getElementById("petBirth").value;
+    const birthVal=getBirthValue(); if(birthVal)pb.birth=birthVal;
     const pr=await apiPost("/api/open/bookings/pet",pb);
     if(pr.error)throw new Error(pr.error.message);
     createdPetID=pr.petID;
@@ -542,6 +600,9 @@ function resetAll(){
   document.getElementById("petBreedId").value="";
   document.getElementById("breedDropdown").style.display="none";
   currentBreeds=[];
+  document.getElementById("petAgeYear").value="";
+  document.getElementById("petAgeMonth").value="";
+  setBirthMode("date", document.getElementById("bm-date"));
   document.querySelectorAll("textarea").forEach(el=>el.value="");
   document.querySelectorAll(".check-item").forEach(el=>el.classList.remove("checked"));
   document.querySelectorAll("input[type=checkbox]").forEach(el=>el.checked=false);
