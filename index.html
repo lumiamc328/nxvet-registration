@@ -45,6 +45,17 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
 .hint{font-size:11px;color:var(--text-h);margin-top:4px;}
 .autofill-badge{font-size:12px;color:var(--lumi-d);background:var(--lumi-pale);border:1px solid var(--lumi-l);border-radius:var(--r);padding:6px 10px;margin-top:8px;display:none;}
 .autofill-badge.show{display:block;}
+.pets-panel{background:var(--white);border:1px solid var(--lumi);border-radius:var(--r);margin-top:10px;overflow:hidden;display:none;}
+.pets-panel.show{display:block;}
+.pets-header{background:var(--lumi-d);color:white;font-size:12px;font-weight:500;padding:8px 12px;letter-spacing:.03em;}
+.pet-chip{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;transition:background .12s;}
+.pet-chip:last-child{border-bottom:none;}
+.pet-chip:hover{background:var(--lumi-pale);}
+.pet-chip:active{background:var(--lumi-l);}
+.pet-icon{width:32px;height:32px;border-radius:50%;background:var(--lumi-l);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.pet-name{font-weight:500;color:var(--text);}
+.pet-detail{font-size:11px;color:var(--text-h);margin-top:1px;}
+.pet-medid{font-size:10px;font-family:monospace;color:var(--text-h);margin-left:auto;flex-shrink:0;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .tg{display:flex;gap:6px;}
 .tb{flex:1;padding:9px 4px;text-align:center;border:1px solid var(--border);border-radius:var(--r);font-size:13px;cursor:pointer;color:var(--text-s);background:var(--lumi-pale);transition:all .15s;font-family:var(--sans);}
@@ -125,6 +136,10 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
       <input type="tel" id="ownerPhone" placeholder="請先輸入電話號碼" autocomplete="tel" oninput="onPhoneInput()">
       <div class="hint">輸入電話後系統將自動查詢是否為舊有飼主</div>
       <div class="autofill-badge" id="autofillBadge"></div>
+      <div class="pets-panel" id="petsPanel">
+        <div class="pets-header">📋 曾帶來就診的動物（點擊帶入寵物資料）</div>
+        <div id="petsList"></div>
+      </div>
     </div>
     <div class="field"><label>姓名 <span class="req">*</span></label><input type="text" id="ownerName" placeholder="請輸入飼主姓名" autocomplete="name"></div>
     <div class="field"><label>電子郵件</label><input type="email" id="ownerEmail" placeholder="example@mail.com（選填）" autocomplete="email"></div>
@@ -333,36 +348,27 @@ async function lookupByPhone(phone){
       const res=await fetch(url,{method:"GET"});
       const data=await res.json();
       if(data.result){
-        const rec=data.result;
-        // 取得所有欄位（欄位名稱來自試算表標題列）
+        const rec   = data.result;
         const name  = rec["飼主姓名"] || "";
         const email = rec["Email"]    || "";
         const addr  = rec["地址"]     || "";
         const note  = rec["備注"]     || "";
+        const pets  = rec["pets"]     || [];
 
         if(name){
           foundInSheet = true;
-          badge.textContent="✅ 找到舊有飼主："+name+" — 歡迎再次光臨";
-          badge.style.background="var(--lumi-l)";
+          const petCount = pets.length;
+          badge.textContent = "✅ 找到舊有飼主："+name+" — 歡迎再次光臨"
+            + (petCount > 0 ? "　共 "+petCount+" 筆就診記錄" : "");
+          badge.style.background = "var(--lumi-l)";
           document.getElementById("ownerName").value = name;
           if(email) document.getElementById("ownerEmail").value = email;
           if(addr)  document.getElementById("ownerAddress").value = addr;
           if(note && !document.getElementById("ownerInfo").value)
             document.getElementById("ownerInfo").value = note;
-        } else if(rec["_debug_headers"]){
-          // 找到記錄但欄位名稱不符，顯示實際欄位供除錯
-          console.warn("試算表欄位：", rec["_debug_headers"]);
-          console.warn("完整資料：", JSON.stringify(rec));
-          // 嘗試用 index 直接取值
-          const vals = Object.values(rec);
-          if(vals[2]) document.getElementById("ownerName").value = vals[2];    // index2=飼主姓名
-          if(vals[4]) document.getElementById("ownerEmail").value = vals[4];   // index4=Email
-          if(vals[5]) document.getElementById("ownerAddress").value = vals[5]; // index5=地址
-          foundInSheet = !!vals[2];
-          if(foundInSheet){
-            badge.textContent="✅ 找到舊有飼主："+vals[2]+" — 歡迎再次光臨";
-            badge.style.background="var(--lumi-l)";
-          }
+
+          // 顯示動物列表
+          renderPetsList(pets);
         }
       }
     }catch(e2){}
@@ -400,6 +406,76 @@ function toPage3(){
   if(!document.getElementById("petName").value.trim()){alert("請填寫寵物名稱");return;}
   if(!document.getElementById("petKind").value){alert("請選擇寵物物種");return;}
   advancePage(3);
+}
+
+// 渲染曾就診動物列表
+function renderPetsList(pets){
+  const panel = document.getElementById("petsPanel");
+  const list  = document.getElementById("petsList");
+
+  if(!pets || pets.length === 0){
+    panel.classList.remove("show");
+    return;
+  }
+
+  const icons = {"犬":"🐶","貓":"🐱","兔":"🐰","鳥":"🐦","其他":"🐾"};
+  list.innerHTML = pets.map((p,i) => {
+    const icon   = icons[p.species] || "🐾";
+    const detail = [p.species, p.breed, p.gender].filter(Boolean).join("・");
+    const medid  = p.medID ? "病歷 "+p.medID : "";
+    return `<div class="pet-chip" onclick="fillPetFromHistory(${i})" title="點擊帶入此動物資料">
+      <div class="pet-icon">${icon}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="pet-name">${p.petName}</div>
+        ${detail ? `<div class="pet-detail">${detail}</div>` : ""}
+      </div>
+      ${medid ? `<div class="pet-medid">${medid}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  panel.classList.add("show");
+  // 把 pets 存到全域供點擊使用
+  window._lastPets = pets;
+}
+
+// 點擊動物後帶入第2頁的寵物欄位
+function fillPetFromHistory(idx){
+  const p = (window._lastPets || [])[idx];
+  if(!p) return;
+
+  // 帶入動物名
+  if(p.petName) document.getElementById("petName").value = p.petName;
+
+  // 帶入物種（需找到對應 option）
+  const kindSel = document.getElementById("petKind");
+  for(let o of kindSel.options){
+    if(o.text && o.text.includes(p.species)){
+      kindSel.value = o.value;
+      updateBreeds();
+      break;
+    }
+  }
+
+  // 帶入品種（搜尋框）
+  if(p.breed){
+    document.getElementById("petBreedInput").value = p.breed;
+  }
+
+  // 帶入性別
+  if(p.gender){
+    const gMap = {"Male":"Male","Female":"Female","公":"Male","母":"Female"};
+    const gVal = gMap[p.gender] || p.gender;
+    document.getElementById("gG").querySelectorAll(".tb").forEach(b=>{
+      if(b.textContent.includes("公") && (gVal==="Male"))  { b.classList.add("sel"); gender="Male"; }
+      else if(b.textContent.includes("母") && (gVal==="Female")) { b.classList.add("sel"); gender="Female"; }
+      else b.classList.remove("sel");
+    });
+  }
+
+  // 顯示提示
+  const badge = document.getElementById("autofillBadge");
+  badge.textContent = "✅ 已帶入："+p.petName+"　請確認或修改寵物資料後繼續";
+  badge.style.background = "var(--lumi-l)";
 }
 
 function setBirthMode(mode, el){
@@ -659,6 +735,9 @@ function resetAll(){
   if(document.getElementById("medNote")) document.getElementById("medNote").value="";
   document.getElementById("submitBtn").disabled=false;
   document.getElementById("autofillBadge").className="autofill-badge";
+  document.getElementById("petsPanel").classList.remove("show");
+  document.getElementById("petsList").innerHTML="";
+  window._lastPets=[];
   _renderPage(1);
 }
 loadKinds();
