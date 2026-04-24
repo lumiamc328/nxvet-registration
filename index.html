@@ -56,6 +56,7 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
 .pet-name{font-weight:500;color:var(--text);}
 .pet-detail{font-size:11px;color:var(--text-h);margin-top:1px;}
 .pet-medid{font-size:10px;font-family:monospace;color:var(--text-h);margin-left:auto;flex-shrink:0;}
+.pet-diff-phone{font-size:10px;color:#e67e22;background:#fff8f0;border:1px solid #f0c080;border-radius:4px;padding:2px 6px;margin-left:auto;flex-shrink:0;white-space:nowrap;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .tg{display:flex;gap:6px;}
 .tb{flex:1;padding:9px 4px;text-align:center;border:1px solid var(--border);border-radius:var(--r);font-size:13px;cursor:pointer;color:var(--text-s);background:var(--lumi-pale);transition:all .15s;font-family:var(--sans);}
@@ -499,14 +500,20 @@ function renderPetsList(pets){
 
   const icons = {"犬":"🐶","貓":"🐱","兔":"🐰","鳥":"🐦","其他":"🐾"};
   list.innerHTML = pets.map((p,i) => {
-    const icon   = icons[p.species] || "🐾";
-    const detail = [p.species, p.breed, p.gender].filter(Boolean).join("・");
-    const medid  = p.medID ? "病歷 "+p.medID : "";
-    return `<div class="pet-chip" onclick="fillPetFromHistory(${i})" title="點擊帶入此動物資料">
+    const icon    = icons[p.species] || "🐾";
+    const detail  = [p.species, p.breed, p.gender].filter(Boolean).join("・");
+    const medid   = p.medID ? "病歷 "+p.medID : "";
+    const isDiff  = p.phoneDiff && p.diffPhone;
+    // 流水號不顯示（只顯示真實電話格式）
+    const isRealPhone = isDiff && p.diffPhone && !p.diffPhone.startsWith('09177');
+    return `<div class="pet-chip" onclick="fillPetFromHistory(${i})"
+      title="${isDiff ? '此動物登記電話為 '+p.diffPhone+'，與搜尋電話不同' : '點擊帶入此動物資料'}"
+      style="${isDiff ? 'opacity:0.85;' : ''}">
       <div class="pet-icon">${icon}</div>
       <div style="flex:1;min-width:0;">
-        <div class="pet-name">${p.petName}</div>
+        <div class="pet-name">${p.petName}${isDiff ? ' <span style="font-size:11px;color:#e67e22;font-weight:normal;">⚠️</span>' : ''}</div>
         ${detail ? `<div class="pet-detail">${detail}</div>` : ""}
+        ${isRealPhone ? `<div class="pet-detail" style="color:#e67e22;">登記電話：${p.diffPhone}</div>` : ""}
       </div>
       ${medid ? `<div class="pet-medid">${medid}</div>` : ""}
     </div>`;
