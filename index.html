@@ -372,7 +372,7 @@ async function lookupByPhone(phone){
         }catch(e4){}
 
         try{
-          // GET /api/open/bookings/pet?userID={id}（注意 userID 含 /user/ 前綴）
+          // GET /api/open/bookings/pet?userID={id}（NxVet 提供動物基本資料）
           const pd = await apiGet("/api/open/bookings/pet?userID="+encodeURIComponent(user.id));
           if(pd && pd.pets && Array.isArray(pd.pets)){
             pets = pd.pets.map(p=>({
@@ -380,23 +380,36 @@ async function lookupByPhone(phone){
               species: p.species || "",
               breed:   p.breed   || "",
               gender:  p.gender  || "",
-              medID:   p.medicalId || ""
+              medID:   ""        // NxVet API 不提供病歷號，稍後從 Sheet 補
             })).filter(p=>p.petName);
           }
         }catch(e5){}
 
-        // 如果 NxVet 沒有動物資料，再查 Google Sheet 補充
-        if(pets.length === 0){
-          try{
-            const payload={action:"lookupPhone",phone};
-            const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
-            const res=await fetch(url,{method:"GET"});
-            const data=await res.json();
-            if(data.result && data.result.pets){
-              pets = data.result.pets;
+        // 從 Google Sheet 補上病歷號碼（用電話查，Sheet 有正確病歷號）
+        try{
+          const payload={action:"lookupPhone",phone};
+          const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+          const res=await fetch(url,{method:"GET"});
+          const data=await res.json();
+          if(data.result){
+            // 建立動物名 → 病歷號的對應表
+            const sheetPets = data.result.pets || [];
+            const medIDMap = {};
+            sheetPets.forEach(sp=>{
+              if(sp.petName && sp.medID) medIDMap[sp.petName] = sp.medID;
+            });
+            if(pets.length > 0){
+              // 補上病歷號
+              pets = pets.map(p=>({
+                ...p,
+                medID: medIDMap[p.petName] || ""
+              }));
+            } else {
+              // NxVet 沒有動物資料才用 Sheet 的
+              pets = sheetPets;
             }
-          }catch(e6){}
-        }
+          }
+        }catch(e6){}
 
         const petCount = pets.length;
         badge.textContent = "✅ 找到舊有飼主："+user.name
