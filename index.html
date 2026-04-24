@@ -440,15 +440,43 @@ async function lookupByPhone(phone){
         if(petMap.size > 0){
           let pets = Array.from(petMap.values());
 
-          // 用 Sheet 補病歷號
+          // 用 Sheet 補病歷號 + phoneDiff 標示
           try{
             const p2 = {action:"lookupPhone", phone, name:nxvetName};
             const r2 = await fetch(SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(p2)),{method:"GET"});
             const d2 = await r2.json();
             if(d2.result?.pets){
-              const medMap = {};
-              d2.result.pets.forEach(sp=>{ if(sp.petName&&sp.medID) medMap[sp.petName]=sp.medID; });
-              pets = pets.map(p=>({...p, medID: medMap[p.petName]||""}));
+              // 建立動物名 → Sheet 資料的對應（含 medID 和 phoneDiff）
+              const sheetMap = {};
+              d2.result.pets.forEach(sp=>{
+                if(sp.petName) sheetMap[sp.petName] = sp;
+              });
+              // 合併：NxVet 動物資料 + Sheet 的病歷號和電話標示
+              pets = pets.map(p=>{
+                const sp = sheetMap[p.petName];
+                return {
+                  ...p,
+                  medID:     (sp && sp.medID)     ? sp.medID     : "",
+                  phoneDiff: (sp && sp.phoneDiff)  ? sp.phoneDiff : false,
+                  diffPhone: (sp && sp.diffPhone)  ? sp.diffPhone : ""
+                };
+              });
+              // Sheet 有但 NxVet 沒有的動物（如舊資料）也加進來
+              d2.result.pets.forEach(sp=>{
+                if(!sp.petName) return;
+                const already = pets.find(p=>p.petName===sp.petName);
+                if(!already){
+                  pets.push({
+                    petName:   sp.petName,
+                    species:   sp.species  || "",
+                    breed:     sp.breed    || "",
+                    gender:    sp.gender   || "",
+                    medID:     sp.medID    || "",
+                    phoneDiff: sp.phoneDiff|| false,
+                    diffPhone: sp.diffPhone|| ""
+                  });
+                }
+              });
             }
           }catch(e4){}
 
