@@ -355,24 +355,25 @@ async function lookupByPhone(phone){
     let found = false;
     let nxvetName = "";
 
-    // ── 1. NxVet userSearch（主要：取姓名 + userID）──────
+    // ── 1. NxVet userSearch（可能回傳多個帳號）──────────────
+    let allUserIDs = [];
     try{
       const s = await apiPost("/api/open/bookings/userSearch",{phone});
-      if(s && Array.isArray(s) && s[0]){
-        const user = s[0];
-        createdUserID = user.id;
-        found    = true;
-        nxvetName = user.name || "";
+      if(s && Array.isArray(s) && s.length > 0){
+        // 取所有 userID（同一人可能有多個帳號）
+        allUserIDs = s.map(u=>u.id).filter(Boolean);
+        createdUserID = s[0].id;  // 主帳號用第一個
+        found     = true;
+        nxvetName = s[0].name || "";
 
-        forceField("ownerName", user.name);
-        // NxVet userSearch 只回傳 name/phone，email/address 通常為空
-        fillField("ownerEmail",   user.email   || "");
-        fillField("ownerAddress", user.address || "");
-        fillField("ownerInfo",    user.info    || "");
+        forceField("ownerName", s[0].name);
+        fillField("ownerEmail",   s[0].email   || "");
+        fillField("ownerAddress", s[0].address || "");
+        fillField("ownerInfo",    s[0].info    || "");
       }
     }catch(e1){}
 
-    // ── 2. NxVet 取完整飼主資料 /user/{id} ──────────────
+    // ── 2. NxVet 取完整飼主資料（補 email/address）──────────
     if(createdUserID){
       try{
         const ud = await apiGet("/api/open/bookings/user/"+createdUserID);
@@ -384,61 +385,68 @@ async function lookupByPhone(phone){
       }catch(e2){}
     }
 
-    // ── 3. Google Sheet（用姓名比對，補入地址/email）────────
-    // 策略：NxVet 找到姓名後立刻用姓名查 Sheet，不依賴電話
+    // ── 3. Google Sheet（姓名+電話比對，補入地址/email）─────
     const nameToSearch = nxvetName || document.getElementById("ownerName").value.trim();
     if(nameToSearch || phone){
       try{
-        const payload = {
-          action: "lookupPhone",
-          phone:  phone,
-          name:   nameToSearch   // 姓名優先比對，解決電話不同的問題
-        };
+        const payload = { action:"lookupPhone", phone, name:nameToSearch };
         const url  = SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
-        const res  = await fetch(url, {method:"GET"});
+        const res  = await fetch(url,{method:"GET"});
         const data = await res.json();
-
         if(data.result){
           const rec = data.result;
-          // 補入 Sheet 有但 NxVet 沒有的欄位
           fillField("ownerName",    rec["飼主姓名"] || "");
           fillField("ownerEmail",   rec["Email"]    || "");
           fillField("ownerAddress", rec["地址"]     || "");
           fillField("ownerInfo",    rec["備注"]     || "");
-
-          if(!found && rec["飼主姓名"]){
-            found = true;
-            nxvetName = rec["飼主姓名"];
-          }
-
-          // 顯示動物列表（從 Sheet）
-          renderPetsList(rec.pets || []);
+          if(!found && rec["飼主姓名"]){ found=true; nxvetName=rec["飼主姓名"]; }
+          // 先用 Sheet 的動物列表顯示（有病歷號）
+          if((rec.pets||[]).length > 0) renderPetsList(rec.pets);
         }
       }catch(e3){}
     }
 
-    // ── 4. NxVet 取動物列表，補上 Sheet 的病歷號 ────────────
-    if(createdUserID){
+    // ── 4. NxVet 取【所有帳號】的動物，合併去重後顯示 ───────
+    if(allUserIDs.length > 0){
       try{
-        const pd = await apiGet("/api/open/bookings/pet?userID="+encodeURIComponent(createdUserID));
-        if(pd && pd.pets && Array.isArray(pd.pets) && pd.pets.length > 0){
-          let pets = pd.pets.map(p=>({
-            petName: p.name    || "",
-            species: p.species || "",
-            breed:   p.breed   || "",
-            gender:  p.gender  || "",
-            medID:   ""
-          })).filter(p=>p.petName);
+        // 用 Promise.all 同時查所有 userID 的動物
+        const petResults = await Promise.allSettled(
+          allUserIDs.map(uid =>
+            apiGet("/api/open/bookings/pet?userID="+encodeURIComponent(uid))
+          )
+        );
 
-          // 用 Sheet 補病歷號（用姓名比對）
+        // 合併所有動物，用「名稱+物種」去重
+        const petMap = new Map();
+        petResults.forEach(r => {
+          if(r.status==="fulfilled" && r.value?.pets){
+            r.value.pets.forEach(p => {
+              if(!p.name) return;
+              const key = p.name + "|" + (p.species||"");
+              if(!petMap.has(key)){
+                petMap.set(key, {
+                  petName: p.name,
+                  species: p.species || "",
+                  breed:   p.breed   || "",
+                  gender:  p.gender  || "",
+                  medID:   ""
+                });
+              }
+            });
+          }
+        });
+
+        if(petMap.size > 0){
+          let pets = Array.from(petMap.values());
+
+          // 用 Sheet 補病歷號
           try{
-            const p2 = {action:"lookupPhone", phone, name: nxvetName};
-            const u2 = SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(p2));
-            const r2 = await fetch(u2,{method:"GET"});
+            const p2 = {action:"lookupPhone", phone, name:nxvetName};
+            const r2 = await fetch(SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(p2)),{method:"GET"});
             const d2 = await r2.json();
-            if(d2.result && d2.result.pets){
+            if(d2.result?.pets){
               const medMap = {};
-              d2.result.pets.forEach(sp=>{ if(sp.petName && sp.medID) medMap[sp.petName]=sp.medID; });
+              d2.result.pets.forEach(sp=>{ if(sp.petName&&sp.medID) medMap[sp.petName]=sp.medID; });
               pets = pets.map(p=>({...p, medID: medMap[p.petName]||""}));
             }
           }catch(e4){}
