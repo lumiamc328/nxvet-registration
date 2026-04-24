@@ -340,60 +340,114 @@ function onPhoneInput(){
 async function lookupByPhone(phone){
   const badge = document.getElementById("autofillBadge");
   try{
-    // 先查 Google 試算表（有完整資料：地址、email）
-    let foundInSheet = false;
-    try{
-      const payload={action:"lookupPhone",phone};
-      const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
-      const res=await fetch(url,{method:"GET"});
-      const data=await res.json();
-      if(data.result){
-        const rec   = data.result;
-        const name  = rec["飼主姓名"] || "";
-        const email = rec["Email"]    || "";
-        const addr  = rec["地址"]     || "";
-        const note  = rec["備注"]     || "";
-        const pets  = rec["pets"]     || [];
+    let found = false;
 
-        if(name){
-          foundInSheet = true;
-          const petCount = pets.length;
-          badge.textContent = "✅ 找到舊有飼主："+name+" — 歡迎再次光臨"
-            + (petCount > 0 ? "　共 "+petCount+" 筆就診記錄" : "");
-          badge.style.background = "var(--lumi-l)";
-          document.getElementById("ownerName").value = name;
-          if(email) document.getElementById("ownerEmail").value = email;
-          if(addr)  document.getElementById("ownerAddress").value = addr;
-          if(note && !document.getElementById("ownerInfo").value)
-            document.getElementById("ownerInfo").value = note;
-
-          // 顯示動物列表
-          renderPetsList(pets);
-        }
-      }
-    }catch(e2){}
-
-    // 同時查 NxVet 取得 userID（不管試算表有沒有找到都查）
+    // ── 主要來源：NxVet ──────────────────────────────
     try{
       const s = await apiPost("/api/open/bookings/userSearch",{phone});
       if(s && Array.isArray(s) && s[0]){
-        createdUserID = s[0].id;
-        if(!foundInSheet){
-          // 試算表沒找到才用 NxVet 的姓名
-          badge.textContent="✅ 找到舊有飼主："+s[0].name+" — 歡迎再次光臨";
-          badge.style.background="var(--lumi-l)";
-          if(s[0].name) document.getElementById("ownerName").value=s[0].name;
+        const user = s[0];
+        createdUserID = user.id;
+        found = true;
+
+        // 帶入基本資料
+        if(user.name)    document.getElementById("ownerName").value    = user.name;
+        if(user.email)   document.getElementById("ownerEmail").value   = user.email;
+        if(user.address) document.getElementById("ownerAddress").value = user.address;
+        if(user.info)    document.getElementById("ownerInfo").value    = user.info;
+
+        // 嘗試取得該飼主的完整資料與動物列表
+        let pets = [];
+        try{
+          // 嘗試 GET /api/open/bookings/user/{id}（取完整飼主資料）
+          const ud = await apiGet("/api/open/bookings/user/"+user.id);
+          if(ud && !ud.error){
+            if(ud.email   && !document.getElementById("ownerEmail").value)
+              document.getElementById("ownerEmail").value = ud.email;
+            if(ud.address && !document.getElementById("ownerAddress").value)
+              document.getElementById("ownerAddress").value = ud.address;
+            if(ud.info    && !document.getElementById("ownerInfo").value)
+              document.getElementById("ownerInfo").value = ud.info;
+          }
+        }catch(e4){}
+
+        try{
+          // 嘗試 GET /api/open/bookings/pets?userID={id}（取動物列表）
+          const pd = await apiGet("/api/open/bookings/pets?userID="+user.id);
+          if(pd && Array.isArray(pd)){
+            pets = pd.map(p=>({
+              petName: p.name || p.petName || "",
+              species: p.kindName || p.species || "",
+              breed:   p.breedName|| p.breed   || "",
+              gender:  p.gender   || "",
+              medID:   p.medicalId|| p.medID   || ""
+            })).filter(p=>p.petName);
+          } else if(pd && pd.list){
+            pets = pd.list.map(p=>({
+              petName: p.name || "",
+              species: p.kindName || "",
+              breed:   p.breedName|| "",
+              gender:  p.gender   || "",
+              medID:   p.medicalId|| ""
+            })).filter(p=>p.petName);
+          }
+        }catch(e5){}
+
+        // 如果 NxVet 沒有動物資料，再查 Google Sheet 補充
+        if(pets.length === 0){
+          try{
+            const payload={action:"lookupPhone",phone};
+            const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+            const res=await fetch(url,{method:"GET"});
+            const data=await res.json();
+            if(data.result && data.result.pets){
+              pets = data.result.pets;
+            }
+          }catch(e6){}
         }
+
+        const petCount = pets.length;
+        badge.textContent = "✅ 找到舊有飼主："+user.name
+          +" — 歡迎再次光臨"
+          +(petCount > 0 ? "　共 "+petCount+" 隻動物" : "");
+        badge.style.background = "var(--lumi-l)";
+        renderPetsList(pets);
       }
     }catch(e3){}
 
-    if(!foundInSheet && !createdUserID){
-      badge.textContent="新飼主，請填寫以下資料";
-      badge.style.background="";
+    // ── 備用：NxVet 找不到時查 Google Sheet ──────────
+    if(!found){
+      try{
+        const payload={action:"lookupPhone",phone};
+        const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+        const res=await fetch(url,{method:"GET"});
+        const data=await res.json();
+        if(data.result){
+          const rec  = data.result;
+          const name = rec["飼主姓名"] || "";
+          if(name){
+            found = true;
+            document.getElementById("ownerName").value = name;
+            if(rec["Email"]) document.getElementById("ownerEmail").value = rec["Email"];
+            if(rec["地址"])  document.getElementById("ownerAddress").value = rec["地址"];
+            if(rec["備注"] && !document.getElementById("ownerInfo").value)
+              document.getElementById("ownerInfo").value = rec["備注"];
+            renderPetsList(rec.pets || []);
+            badge.textContent = "✅ 找到舊有飼主："+name+" — 歡迎再次光臨"
+              +(rec.pets?.length > 0 ? "　共 "+rec.pets.length+" 隻動物" : "");
+            badge.style.background = "var(--lumi-l)";
+          }
+        }
+      }catch(e7){}
+    }
+
+    if(!found){
+      badge.textContent = "新飼主，請填寫以下資料";
+      badge.style.background = "";
     }
   }catch(e){
-    badge.textContent="";
-    badge.className="autofill-badge";
+    badge.textContent = "";
+    badge.className = "autofill-badge";
   }
 }
 
