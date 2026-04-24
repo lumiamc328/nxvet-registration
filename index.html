@@ -385,9 +385,10 @@ async function lookupByPhone(phone){
           }
         }catch(e5){}
 
-        // 從 Google Sheet 補上病歷號碼（用電話查，Sheet 有正確病歷號）
+        // 從 Google Sheet 補上病歷號碼（電話+姓名雙重比對）
         try{
-          const payload={action:"lookupPhone",phone};
+          const ownerName = document.getElementById("ownerName").value.trim();
+          const payload={action:"lookupPhone", phone, name: ownerName};
           const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
           const res=await fetch(url,{method:"GET"});
           const data=await res.json();
