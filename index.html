@@ -63,9 +63,6 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
 .tb:hover{border-color:var(--lumi);color:var(--text);}
 .tb.sel{background:var(--lumi);border-color:var(--lumi-d);color:white;font-weight:500;}
 .check-list{display:flex;flex-direction:column;gap:7px;}
-.medrec-box{background:#EEF9FB;border:1px solid var(--lumi);border-radius:var(--r);padding:14px;margin-top:10px;display:none;}
-.medrec-box.show{display:block;}
-.medrec-title{font-weight:500;color:var(--lumi-d);margin-bottom:4px;font-size:13px;}
 .upload-area{border:1.5px dashed var(--lumi);border-radius:var(--r);padding:16px;text-align:center;cursor:pointer;background:var(--white);transition:all .15s;}
 .upload-area:hover{background:var(--lumi-pale);border-color:var(--lumi-d);}
 .file-chip{display:inline-flex;align-items:center;gap:6px;background:var(--lumi-pale);border:1px solid var(--lumi-l);border-radius:20px;padding:3px 10px;font-size:12px;color:var(--lumi-d);margin:3px;}
@@ -144,7 +141,7 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
     </div>
     <div class="field"><label>姓名 <span class="req">*</span></label><input type="text" id="ownerName" placeholder="請輸入飼主姓名" autocomplete="name"></div>
     <div class="field"><label>電子郵件</label><input type="email" id="ownerEmail" placeholder="example@mail.com（選填）" autocomplete="email"></div>
-    <div class="field"><label>地址</label><input type="text" id="ownerAddress" placeholder="請輸入地址（選填）" autocomplete="street-address"></div>
+    <div class="field"><label>地址 <span class="req">*</span></label><input type="text" id="ownerAddress" placeholder="請輸入地址" autocomplete="street-address"></div>
     <div class="field"><label>備注</label><textarea id="ownerInfo" placeholder="備注事項（選填）"></textarea></div>
   </div>
   <div class="btn-row">
@@ -207,33 +204,35 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
   </div>
   <div class="card">
     <div class="cl">先前就診紀錄</div>
-    <div style="font-size:13px;color:var(--text-s);margin-bottom:12px;">如有先前就診資料，請勾選後上傳或填入連結：</div>
-    <div class="check-list">
-      <div class="check-item" onclick="toggleMedRec(this,'c_drug')"><input type="checkbox" id="c_drug"><label for="c_drug">先前用藥紀錄</label></div>
-      <div class="check-item" onclick="toggleMedRec(this,'c_blood')"><input type="checkbox" id="c_blood"><label for="c_blood">血液檢查報告</label></div>
-      <div class="check-item" onclick="toggleMedRec(this,'c_image')"><input type="checkbox" id="c_image"><label for="c_image">影像檢查報告（X光、超音波等）</label></div>
-      <div class="check-item" onclick="toggleMedRec(this,'c_other')"><input type="checkbox" id="c_other"><label for="c_other">其他診療記錄</label></div>
+    <div style="font-size:13px;color:var(--text-s);margin-bottom:14px;">如有先前就診資料，可上傳檔案或填入連結：</div>
+
+    <div class="field">
+      <label>上傳照片、影像或文件
+        <span style="font-size:11px;color:var(--text-h);font-weight:normal;">（上限 20 個）</span>
+      </label>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('medFiles').click()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:5px;color:var(--lumi-d)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        <div style="font-size:13px;color:var(--lumi-d);font-weight:500">點擊選擇檔案 / 手機可直接拍攝</div>
+        <div style="font-size:11px;color:var(--text-h);margin-top:3px">支援 JPG、PNG、PDF、MP4 等（每次可多選）</div>
+      </div>
+      <input type="file" id="medFiles" multiple accept="image/*,.pdf,video/*" style="display:none" onchange="onFilesSelected()">
+      <div id="fileList" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
-    <div class="medrec-box" id="medRecBox">
-      <div class="medrec-title">提供就診資料方式（擇一或兩者皆可）</div>
-      <div class="field" style="margin-top:10px;">
-        <label>上傳照片或文件</label>
-        <div class="upload-area" id="uploadArea" onclick="document.getElementById('medFiles').click()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:6px;color:var(--lumi-d)"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-          <div style="font-size:13px;color:var(--lumi-d);font-weight:500">點擊選擇或拍攝</div>
-          <div style="font-size:11px;color:var(--text-h);margin-top:2px">支援照片、影像、PDF（手機可直接拍照）</div>
-        </div>
-        <input type="file" id="medFiles" multiple accept="image/*,.pdf,video/*" capture="environment" style="display:none" onchange="onFilesSelected()">
-        <div id="fileList" style="margin-top:8px;"></div>
-      </div>
-      <div class="field">
-        <label>或填入資料連結（Google Drive、雲端相簿等）</label>
-        <input type="url" id="medUrl" placeholder="例：https://drive.google.com/...">
-      </div>
-      <div class="field">
-        <label>補充說明</label>
-        <textarea id="medNote" placeholder="例：3個月前在XX動物醫院就診，有心臟病史..." style="min-height:56px;"></textarea>
-      </div>
+
+    <div class="field" style="margin-top:6px;">
+      <label>資料網址
+        <span style="font-size:11px;color:var(--text-h);font-weight:normal;">（上限 5 個，每行填一個）</span>
+      </label>
+      <div id="urlList"></div>
+      <button type="button" id="addUrlBtn" onclick="addUrlField()"
+        style="margin-top:6px;padding:7px 14px;background:var(--lumi-pale);color:var(--lumi-d);border:1px solid var(--lumi);border-radius:var(--r);font-size:13px;cursor:pointer;font-family:var(--sans);">
+        ＋ 新增網址
+      </button>
+    </div>
+
+    <div class="field">
+      <label>補充說明</label>
+      <textarea id="medNote" placeholder="例：3個月前在XX動物醫院就診，有心臟病史..." style="min-height:56px;"></textarea>
     </div>
   </div>
   <div class="btn-row">
@@ -508,6 +507,7 @@ async function lookupByPhone(phone){
 function toPage2(){
   if(!document.getElementById("ownerPhone").value.trim()){alert("請填寫聯絡電話");return;}
   if(!document.getElementById("ownerName").value.trim()){alert("請填寫飼主姓名");return;}
+  if(!document.getElementById("ownerAddress").value.trim()){alert("請填寫地址");return;}
   advancePage(2);
 }
 function toPage3(){
@@ -634,17 +634,32 @@ function getBirthLabel(){
 
 function selGender(val,el){gender=val;document.getElementById("gG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
 function selNeuter(val,el){neuter=val;document.getElementById("nG").querySelectorAll(".tb").forEach(b=>b.classList.remove("sel"));el.classList.add("sel");}
-function toggleMedRec(item,id){
-  const cb=document.getElementById(id);cb.checked=!cb.checked;item.classList.toggle("checked",cb.checked);
-  const any=["c_drug","c_blood","c_image","c_other"].some(i=>document.getElementById(i).checked);
-  document.getElementById("medRecBox").classList.toggle("show",any);
+let urlFieldCount = 0;
+function addUrlField(){
+  if(urlFieldCount >= 5){ alert("最多只能新增 5 個網址"); return; }
+  urlFieldCount++;
+  const idx = urlFieldCount;
+  const div = document.createElement("div");
+  div.id = "urlRow"+idx;
+  div.style.cssText = "display:flex;gap:6px;margin-bottom:6px;align-items:center;";
+  div.innerHTML = `<input type="url" id="medUrl${idx}" placeholder="https://drive.google.com/..." style="flex:1;">
+    <button type="button" onclick="removeUrlField(${idx})"
+      style="padding:8px 10px;background:var(--white);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;color:var(--text-h);font-size:14px;flex-shrink:0;">✕</button>`;
+  document.getElementById("urlList").appendChild(div);
+  if(urlFieldCount >= 5) document.getElementById("addUrlBtn").style.display="none";
+}
+function removeUrlField(idx){
+  const row = document.getElementById("urlRow"+idx);
+  if(row) row.remove();
+  urlFieldCount = Math.max(0, urlFieldCount-1);
+  document.getElementById("addUrlBtn").style.display="";
 }
 
 let selectedFiles=[];
 function onFilesSelected(){
   const input=document.getElementById("medFiles");
   const newFiles=Array.from(input.files);
-  selectedFiles=[...selectedFiles,...newFiles].slice(0,5);
+  selectedFiles=[...selectedFiles,...newFiles].slice(0,20);
   renderFileList();
   input.value="";
 }
@@ -719,17 +734,21 @@ function selectBreed(id, name){
   document.getElementById("breedDropdown").style.display = "none";
 }
 function buildComment(){
-  const labels={c_drug:"先前用藥紀錄",c_blood:"血液檢查報告",c_image:"影像檢查報告",c_other:"其他診療記錄"};
-  const checked=Object.entries(labels).filter(([id])=>document.getElementById(id).checked).map(([,l])=>l);
-  if(!checked.length)return"";
-  let note="【先前就診紀錄】"+checked.join("、");
-  const url=document.getElementById("medUrl")?.value.trim();
-  const memo=document.getElementById("medNote")?.value.trim();
-  const fileNames=selectedFiles.map(f=>f.name).join("、");
-  if(url) note+=" ｜ 資料連結："+url;
-  if(fileNames) note+=" ｜ 上傳檔案："+fileNames;
-  if(memo) note+=" ｜ 說明："+memo;
-  return note;
+  const parts = [];
+  // 收集所有網址
+  const urls = [];
+  for(let i=1; i<=5; i++){
+    const el = document.getElementById("medUrl"+i);
+    if(el && el.value.trim()) urls.push(el.value.trim());
+  }
+  if(urls.length) parts.push("資料連結："+urls.join(" / "));
+  // 上傳檔案
+  if(selectedFiles.length) parts.push("上傳檔案："+selectedFiles.map(f=>f.name).join("、"));
+  // 補充說明
+  const memo = document.getElementById("medNote")?.value.trim();
+  if(memo) parts.push("說明："+memo);
+  if(!parts.length) return "";
+  return "【先前就診資料】" + parts.join(" ｜ ");
 }
 
 async function submitAll(){
@@ -842,10 +861,12 @@ function resetAll(){
   document.querySelectorAll(".check-item").forEach(el=>el.classList.remove("checked"));
   document.querySelectorAll("input[type=checkbox]").forEach(el=>el.checked=false);
   document.querySelectorAll(".tb,.cbtn").forEach(el=>el.classList.remove("sel"));
-  document.getElementById("medRecBox").classList.remove("show");
+  // 清除網址欄位
+  document.getElementById("urlList").innerHTML="";
+  urlFieldCount=0;
+  document.getElementById("addUrlBtn").style.display="";
   selectedFiles=[];
   renderFileList();
-  if(document.getElementById("medUrl")) document.getElementById("medUrl").value="";
   if(document.getElementById("medNote")) document.getElementById("medNote").value="";
   document.getElementById("submitBtn").disabled=false;
   document.getElementById("autofillBadge").className="autofill-badge";
