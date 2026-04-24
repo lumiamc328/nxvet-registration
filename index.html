@@ -372,23 +372,15 @@ async function lookupByPhone(phone){
         }catch(e4){}
 
         try{
-          // 嘗試 GET /api/open/bookings/pets?userID={id}（取動物列表）
-          const pd = await apiGet("/api/open/bookings/pets?userID="+user.id);
-          if(pd && Array.isArray(pd)){
-            pets = pd.map(p=>({
-              petName: p.name || p.petName || "",
-              species: p.kindName || p.species || "",
-              breed:   p.breedName|| p.breed   || "",
-              gender:  p.gender   || "",
-              medID:   p.medicalId|| p.medID   || ""
-            })).filter(p=>p.petName);
-          } else if(pd && pd.list){
-            pets = pd.list.map(p=>({
-              petName: p.name || "",
-              species: p.kindName || "",
-              breed:   p.breedName|| "",
-              gender:  p.gender   || "",
-              medID:   p.medicalId|| ""
+          // GET /api/open/bookings/pet?userID={id}（注意 userID 含 /user/ 前綴）
+          const pd = await apiGet("/api/open/bookings/pet?userID="+encodeURIComponent(user.id));
+          if(pd && pd.pets && Array.isArray(pd.pets)){
+            pets = pd.pets.map(p=>({
+              petName: p.name    || "",
+              species: p.species || "",
+              breed:   p.breed   || "",
+              gender:  p.gender  || "",
+              medID:   p.medicalId || ""
             })).filter(p=>p.petName);
           }
         }catch(e5){}
