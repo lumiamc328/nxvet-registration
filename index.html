@@ -339,123 +339,134 @@ function onPhoneInput(){
 
 async function lookupByPhone(phone){
   const badge = document.getElementById("autofillBadge");
+
+  function fillField(id, val){
+    // 只填入空白欄位，保留使用者已自行輸入的內容
+    const el = document.getElementById(id);
+    if(el && !el.value.trim() && val) el.value = val;
+  }
+  function forceField(id, val){
+    // 強制填入（主要資料如姓名）
+    const el = document.getElementById(id);
+    if(el && val) el.value = val;
+  }
+
   try{
     let found = false;
+    let nxvetName = "";
 
-    // ── 主要來源：NxVet ──────────────────────────────
+    // ── 1. NxVet userSearch（主要：取姓名 + userID）──────
     try{
       const s = await apiPost("/api/open/bookings/userSearch",{phone});
       if(s && Array.isArray(s) && s[0]){
         const user = s[0];
         createdUserID = user.id;
-        found = true;
+        found    = true;
+        nxvetName = user.name || "";
 
-        // 帶入基本資料
-        if(user.name)    document.getElementById("ownerName").value    = user.name;
-        if(user.email)   document.getElementById("ownerEmail").value   = user.email;
-        if(user.address) document.getElementById("ownerAddress").value = user.address;
-        if(user.info)    document.getElementById("ownerInfo").value    = user.info;
-
-        // 嘗試取得該飼主的完整資料與動物列表
-        let pets = [];
-        try{
-          // 嘗試 GET /api/open/bookings/user/{id}（取完整飼主資料）
-          const ud = await apiGet("/api/open/bookings/user/"+user.id);
-          if(ud && !ud.error){
-            if(ud.email   && !document.getElementById("ownerEmail").value)
-              document.getElementById("ownerEmail").value = ud.email;
-            if(ud.address && !document.getElementById("ownerAddress").value)
-              document.getElementById("ownerAddress").value = ud.address;
-            if(ud.info    && !document.getElementById("ownerInfo").value)
-              document.getElementById("ownerInfo").value = ud.info;
-          }
-        }catch(e4){}
-
-        try{
-          // GET /api/open/bookings/pet?userID={id}（NxVet 提供動物基本資料）
-          const pd = await apiGet("/api/open/bookings/pet?userID="+encodeURIComponent(user.id));
-          if(pd && pd.pets && Array.isArray(pd.pets)){
-            pets = pd.pets.map(p=>({
-              petName: p.name    || "",
-              species: p.species || "",
-              breed:   p.breed   || "",
-              gender:  p.gender  || "",
-              medID:   ""        // NxVet API 不提供病歷號，稍後從 Sheet 補
-            })).filter(p=>p.petName);
-          }
-        }catch(e5){}
-
-        // 從 Google Sheet 補上病歷號碼（電話+姓名雙重比對）
-        try{
-          const ownerName = document.getElementById("ownerName").value.trim();
-          const payload={action:"lookupPhone", phone, name: ownerName};
-          const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
-          const res=await fetch(url,{method:"GET"});
-          const data=await res.json();
-          if(data.result){
-            // 建立動物名 → 病歷號的對應表
-            const sheetPets = data.result.pets || [];
-            const medIDMap = {};
-            sheetPets.forEach(sp=>{
-              if(sp.petName && sp.medID) medIDMap[sp.petName] = sp.medID;
-            });
-            if(pets.length > 0){
-              // 補上病歷號
-              pets = pets.map(p=>({
-                ...p,
-                medID: medIDMap[p.petName] || ""
-              }));
-            } else {
-              // NxVet 沒有動物資料才用 Sheet 的
-              pets = sheetPets;
-            }
-          }
-        }catch(e6){}
-
-        const petCount = pets.length;
-        badge.textContent = "✅ 找到舊有飼主："+user.name
-          +" — 歡迎再次光臨"
-          +(petCount > 0 ? "　共 "+petCount+" 隻動物" : "");
-        badge.style.background = "var(--lumi-l)";
-        renderPetsList(pets);
+        forceField("ownerName", user.name);
+        // NxVet userSearch 只回傳 name/phone，email/address 通常為空
+        fillField("ownerEmail",   user.email   || "");
+        fillField("ownerAddress", user.address || "");
+        fillField("ownerInfo",    user.info    || "");
       }
-    }catch(e3){}
+    }catch(e1){}
 
-    // ── 備用：NxVet 找不到時查 Google Sheet ──────────
-    if(!found){
+    // ── 2. NxVet 取完整飼主資料 /user/{id} ──────────────
+    if(createdUserID){
       try{
-        const payload={action:"lookupPhone",phone};
-        const url=SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
-        const res=await fetch(url,{method:"GET"});
-        const data=await res.json();
-        if(data.result){
-          const rec  = data.result;
-          const name = rec["飼主姓名"] || "";
-          if(name){
-            found = true;
-            document.getElementById("ownerName").value = name;
-            if(rec["Email"]) document.getElementById("ownerEmail").value = rec["Email"];
-            if(rec["地址"])  document.getElementById("ownerAddress").value = rec["地址"];
-            if(rec["備注"] && !document.getElementById("ownerInfo").value)
-              document.getElementById("ownerInfo").value = rec["備注"];
-            renderPetsList(rec.pets || []);
-            badge.textContent = "✅ 找到舊有飼主："+name+" — 歡迎再次光臨"
-              +(rec.pets?.length > 0 ? "　共 "+rec.pets.length+" 隻動物" : "");
-            badge.style.background = "var(--lumi-l)";
-          }
+        const ud = await apiGet("/api/open/bookings/user/"+createdUserID);
+        if(ud && !ud.error){
+          fillField("ownerEmail",   ud.email   || "");
+          fillField("ownerAddress", ud.address || "");
+          fillField("ownerInfo",    ud.info    || "");
         }
-      }catch(e7){}
+      }catch(e2){}
     }
 
-    if(!found){
+    // ── 3. Google Sheet（用姓名比對，補入地址/email）────────
+    // 策略：NxVet 找到姓名後立刻用姓名查 Sheet，不依賴電話
+    const nameToSearch = nxvetName || document.getElementById("ownerName").value.trim();
+    if(nameToSearch || phone){
+      try{
+        const payload = {
+          action: "lookupPhone",
+          phone:  phone,
+          name:   nameToSearch   // 姓名優先比對，解決電話不同的問題
+        };
+        const url  = SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+        const res  = await fetch(url, {method:"GET"});
+        const data = await res.json();
+
+        if(data.result){
+          const rec = data.result;
+          // 補入 Sheet 有但 NxVet 沒有的欄位
+          fillField("ownerName",    rec["飼主姓名"] || "");
+          fillField("ownerEmail",   rec["Email"]    || "");
+          fillField("ownerAddress", rec["地址"]     || "");
+          fillField("ownerInfo",    rec["備注"]     || "");
+
+          if(!found && rec["飼主姓名"]){
+            found = true;
+            nxvetName = rec["飼主姓名"];
+          }
+
+          // 顯示動物列表（從 Sheet）
+          renderPetsList(rec.pets || []);
+        }
+      }catch(e3){}
+    }
+
+    // ── 4. NxVet 取動物列表，補上 Sheet 的病歷號 ────────────
+    if(createdUserID){
+      try{
+        const pd = await apiGet("/api/open/bookings/pet?userID="+encodeURIComponent(createdUserID));
+        if(pd && pd.pets && Array.isArray(pd.pets) && pd.pets.length > 0){
+          let pets = pd.pets.map(p=>({
+            petName: p.name    || "",
+            species: p.species || "",
+            breed:   p.breed   || "",
+            gender:  p.gender  || "",
+            medID:   ""
+          })).filter(p=>p.petName);
+
+          // 用 Sheet 補病歷號（用姓名比對）
+          try{
+            const p2 = {action:"lookupPhone", phone, name: nxvetName};
+            const u2 = SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(p2));
+            const r2 = await fetch(u2,{method:"GET"});
+            const d2 = await r2.json();
+            if(d2.result && d2.result.pets){
+              const medMap = {};
+              d2.result.pets.forEach(sp=>{ if(sp.petName && sp.medID) medMap[sp.petName]=sp.medID; });
+              pets = pets.map(p=>({...p, medID: medMap[p.petName]||""}));
+            }
+          }catch(e4){}
+
+          renderPetsList(pets);
+        }
+      }catch(e5){}
+    }
+
+    // ── 顯示結果徽章 ────────────────────────────────────
+    const finalName = document.getElementById("ownerName").value.trim() || nxvetName;
+    const petsCount = (window._lastPets||[]).length;
+
+    if(found || finalName){
+      badge.textContent = "✅ 找到舊有飼主："+finalName+" — 歡迎再次光臨"
+        +(petsCount>0 ? "　共 "+petsCount+" 隻動物" : "");
+      badge.style.background = "var(--lumi-l)";
+    } else {
       badge.textContent = "新飼主，請填寫以下資料";
       badge.style.background = "";
     }
+
   }catch(e){
     badge.textContent = "";
-    badge.className = "autofill-badge";
+    badge.className   = "autofill-badge";
   }
 }
+
 
 function toPage2(){
   if(!document.getElementById("ownerPhone").value.trim()){alert("請填寫聯絡電話");return;}
