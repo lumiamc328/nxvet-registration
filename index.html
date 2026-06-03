@@ -254,6 +254,10 @@ textarea{resize:vertical;min-height:68px;line-height:1.6;}
         <div class="rr"><div class="rl">寵物 ID（NxVet）</div><div class="rv" id="res-pet">—</div></div>
         <div class="rr" id="res-medid-row" style="display:none;"><div class="rl">病歷號碼</div><div class="rv" id="res-medid" style="color:var(--lumi-d);font-weight:500;">—</div></div>
       </div>
+      <div id="res-drive-section" style="display:none;margin-top:10px;">
+        <div style="font-size:12px;font-weight:500;color:var(--lumi-d);margin-bottom:6px;">📎 就診資料摘要</div>
+        <div id="res-drive-list"></div>
+      </div>
     </div>
 
     <!-- 院內同步病歷號區塊 -->
@@ -807,8 +811,64 @@ async function submitAll(){
       }catch(e){}
     }
 
+    // ── 直接上傳附件到 NxVet petFiles API ──────────────────────
+    const uploadedFiles = [];
+    const urlList = [];
+    for(let ui=1; ui<=5; ui++){
+      const el=document.getElementById("medUrl"+ui);
+      if(el&&el.value.trim()) urlList.push(el.value.trim());
+    }
+    const memo=document.getElementById("medNote")?.value.trim()||"";
+
+    if(selectedFiles.length>0 && createdPetID){
+      showStatus("submitStatus","上傳附件至 NxVet（0/"+selectedFiles.length+"）...","loading");
+      try{
+        const fd = new FormData();
+        fd.append("petID", createdPetID);
+        const title="初診資料 - "+name+" / "+petName+" ("+new Date().toLocaleDateString("zh-TW")+")";
+        fd.append("title", title);
+        selectedFiles.forEach((f,idx)=>{
+          fd.append("file-"+(idx+1), f, f.name);
+          if(idx===0 && memo) fd.append("file-1-desc", memo);
+        });
+        const upRes = await fetch(SERVER+"/api/open/bookings/petFiles",{
+          method:"POST",
+          headers:{"Authorization":"Bearer "+TOKEN},
+          body: fd
+        });
+        const upData = await upRes.json();
+        if(upData.uploadTo){
+          selectedFiles.forEach(f=>uploadedFiles.push(f.name));
+        } else {
+          console.warn("NxVet petFiles 上傳失敗:", JSON.stringify(upData));
+        }
+      }catch(ue){ console.warn("上傳附件失敗:", ue); }
+    }
+
+    // 網址和備注寫入 Google Sheet 備注欄供院內參考
+    if(urlList.length>0||memo){
+      try{
+        const np={action:"new_booking_note",petID:createdPetID,userID:createdUserID,
+          note:(urlList.length?"【參考連結】"+urlList.join(" / "):"")+
+               (memo?"【說明】"+memo:""),
+          timestamp:new Date().toISOString()};
+        await fetch(SHEET_URL+"?data="+encodeURIComponent(JSON.stringify(np)),{method:"GET",mode:"no-cors"});
+      }catch(ne){}
+    }
+
     document.getElementById("res-user").textContent=createdUserID||"—";
     document.getElementById("res-pet").textContent=createdPetID||"—";
+
+    const hasSummary=uploadedFiles.length>0||urlList.length>0||memo;
+    if(hasSummary){
+      document.getElementById("res-drive-section").style.display="block";
+      let sh="";
+      if(uploadedFiles.length>0) sh+=`<div class="rr"><div class="rl">已上傳至 NxVet（${uploadedFiles.length} 個）</div><div class="rv">${uploadedFiles.join("、")}</div></div>`;
+      urlList.forEach(u=>{ sh+=`<div class="rr"><div class="rl">參考連結</div><div class="rv" style="font-size:11px;word-break:break-all;">${u}</div></div>`; });
+      if(memo) sh+=`<div class="rr"><div class="rl">補充說明</div><div class="rv">${memo}</div></div>`;
+      document.getElementById("res-drive-list").innerHTML=sh;
+    }
+
     currentPage=4;
     _renderPage(4);
   }catch(e){
@@ -816,6 +876,7 @@ async function submitAll(){
     showStatus("submitStatus","錯誤："+e.message,"error");
   }
 }
+
 
 async function syncMedID(){
   const medID = document.getElementById("syncMedID").value.trim();
